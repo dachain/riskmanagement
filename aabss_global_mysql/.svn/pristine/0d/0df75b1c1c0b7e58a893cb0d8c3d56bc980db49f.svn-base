@@ -1,0 +1,23 @@
+[
+    {
+        "proportion": "2",
+        "line": "300",
+        "xuanxianglist": [
+            {
+                "item_code": "1231213",
+                "runlist": [
+                    {
+                        "opt": "<=",
+                        "resule": "true",
+                        "value": "100000"
+                    },
+                    {
+                        "opt": ">",
+                        "resule": "false",
+                        "value": "100000"
+                    }
+                ]
+            }
+        ]
+    }
+]

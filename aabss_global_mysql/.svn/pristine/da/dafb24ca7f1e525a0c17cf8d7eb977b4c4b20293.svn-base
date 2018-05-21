@@ -1,0 +1,220 @@
+package com.newdumai.loanMiddle.impl;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.google.gson.Gson;
+import com.newdumai.dumai_data.dm_3rd_interface.Dm_3rd_interfaceService;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.global.vo.LoginVo;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.loanFront.GenReportService;
+import com.newdumai.loanFront.OrderInfoService;
+import com.newdumai.loanMiddle.LoanMiddleService;
+import com.newdumai.sysmgr.BizFunctionSettingsService;
+import com.newdumai.util.JsonToMap;
+
+@Service("loanMiddleService")
+public class LoadMiddleServiceImpl extends BaseServiceImpl implements LoanMiddleService {
+
+	@Autowired
+	private OrderInfoService orderInfoService;
+
+	@Autowired
+	private AuditService auditService;
+
+	@Autowired
+	private GenReportService genReportService;
+
+	@Autowired
+	private BizFunctionSettingsService bizFunctionSettingsService;
+	
+	@Autowired
+	private Dm_3rd_interfaceService dm_3rd_interfaceService;
+
+	public String list(Map<String, Object> map) {
+		Map<String, Object> condition = getCondition_list(map);
+		return listPageBase(condition, gen_list_1(condition.get("condition").toString()), gen_list_2(condition.get("condition").toString(), getLimitUseAtSelectPage(map)));
+
+	}
+
+	@Override
+	public List<Map<String, Object>> getTypesBySubEntityId(String subEntityId) {
+		String sql = "select t.* from sys_company_type ct join sys_type t on ct.type_code = t.code where ct.sub_entity_id = ? and ct.rule_model = '1' and ct.is_able = '1'";
+		return super.mysqlSpringJdbcBaseDao.queryForList(sql, subEntityId);
+	}
+
+	@Override
+	public Map<String, Object> getReportInfo(LoginVo login, String code, String typeCode) {
+
+		String sql = "select o.*,c.name typename,p.sex,p.age,p.married,p.address,p.income,p.banknum," 
+				+ " p.otherincome,p.profession,p.linkname1,p.linkname2,p.linkphone1,"
+				+ " p.linkphone2,p.insuranceid,p.insurancepwd,p.fundid,p.fundpwd,co.name as companyName " 
+				+ " from fk_orderInfo o " 
+				+ " left join fk_personinfo p on o.personinfo_code=p.code"
+				+ " left join sys_type c on o.thetype=c.code " 
+				+ " left join company_order co on o.sub_entity_id=co.sub_entity_id " 
+				+ " where o.code=?";
+		Map<String, Object> data = mysqlSpringJdbcBaseDao.queryForMap(sql, code);
+
+		if (null != data) {
+			String xiaoShiPohto = genReportService.Report("1", code);
+			if (StringUtils.isNotEmpty(xiaoShiPohto)) {
+				Map<String, Object> photoData = JsonToMap.jsonToMap(xiaoShiPohto);
+				data.put("xiaoshi-picture", photoData.get("PHOTO"));
+			}
+
+			if (bizFunctionSettingsService.hasFunctions(login, "loanfront_report4", typeCode)) {
+				String bankValidation = genReportService.Report("4", code);
+				if (!StringUtils.isEmpty(bankValidation)) {
+					Map<String, Object> result = JsonToMap.jsonToMap(bankValidation);
+					data.put("bankValidation", result.get("data"));
+				}
+			}
+
+			data.put("audit_result", auditService.findResultsByOrderCode(code));
+			data.put("orders", orderInfoService.findTheSamePersonOrderIdsByCode(code));
+			data.put("basicinfo", new Gson().fromJson(genReportService.Report("6", code), Object.class));
+		}
+
+		return data;
+	}
+	
+	
+	private String gen_list_1(String condition) {
+		return "SELECT count(*) FROM fk_orderinfo WHERE 1=1 " + condition;
+	}
+
+	private String gen_list_2(String condition, String limit) {
+
+		return "SELECT fk_orderinfo.*,sys_type.name type_name,sys_user.surname audit_person,"
+				+ "(select count(*) from fk_guize_detail where fk_guize_detail.order_code=fk_orderinfo.code and result='true') hit_counts FROM fk_orderinfo "
+				+ "left join sys_type on fk_orderinfo.thetype = sys_type.code " + "left join sys_user on fk_orderinfo.dqshr = sys_user.code " + "WHERE 1=1 and fk_orderinfo.deleted=0 "
+				+ " and fk_orderinfo.biz_range = '2' " + condition + " order by fk_orderinfo.createtime desc " + limit;
+	}
+
+	private Map<String, Object> getCondition_list(Map<String, Object> map) {
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<Object> list = new ArrayList<Object>();
+		StringBuilder sb = new StringBuilder();
+
+		String sub_entity_id = (String) map.get("sub_entity_id");
+		if (StringUtils.isNotEmpty(sub_entity_id)) {
+			sb.append(" AND fk_orderinfo.sub_entity_id=? ");
+			list.add(sub_entity_id);
+		}
+
+		String filter_headtype = (String) map.get("filter_headtype");
+		if (!StringUtils.isEmpty(filter_headtype)) {
+			sb.append(" AND fk_orderinfo.thetype=? ");
+			list.add(filter_headtype);
+		}
+
+		String filter_keyword = (String) map.get("filter_keyword");
+		if (!StringUtils.isEmpty(filter_keyword)) {
+			sb.append(" AND (fk_orderinfo.name like ? or fk_orderinfo.card_num like ?)");
+			list.add("%" + filter_keyword + "%");
+			list.add("%" + filter_keyword + "%");
+		}
+
+		String filter_startTime = (String) map.get("filter_startTime");
+		if (!StringUtils.isEmpty(filter_startTime)) {
+			sb.append(" AND fk_orderinfo.createtime > ? ");
+			list.add(filter_startTime);
+		}
+
+		String filter_endTime = (String) map.get("filter_endTime");
+		if (!StringUtils.isEmpty(filter_endTime)) {
+			sb.append(" AND fk_orderinfo.createtime < ? ");
+			list.add(filter_endTime);
+		}
+
+		data.put("condition", sb.toString());
+		data.put("args", list.toArray());
+
+		return data;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getGpsAlarm(String orderCode) {
+		
+		String sql = "select * from fk_orderinfo where code=? and deleted=0";
+		Map<String,Object> orderMap = mysqlSpringJdbcBaseDao.queryForMap(sql, orderCode);
+		
+		//String[] cc = {"880098410161444","880098410171679","880098410171828","880098410171829","880098410171833","880098410171917","880098410171918","880098410171919","880098410171920","880098410171921","880098410171922","880098410171923","880098410171924","880098410171925","880098410171926","880098410171927","880098410171929","880098410171930","880098410171931","880098410171932","880098410171933","880098410171934","880098410171936","880098410172237","880098410172238","880098410172239","880098410172240","880098410172241","880098410172242","880098410172243","880098410172244","880098410172245","880098410172246","880098410172247","880098410172248","880098410172249","880098410172250","880098410172251","880098410172252","880098410172253","880098410172254","880098410172255","880098410172256","880098410172257","880098410172258","880098410172259","880098410172260","880098410172261","880098410172262","880098410172263","880098410172264","880098410172265","880098410172266","880098410172267","880098410172268","880098410172270","880098410172271","880098410172272","880098410172273","880098410172275","880098410172276","880098410172277","880098410172278","880098410172279","880098410172280","880098410172281","880098410172282","880098410172283","880098410172284","880098410172285","880098410172286","880098410172287","880098410172288","880098410172289","880098410172290","880098410172291","880098410172292","880098410172293","880098410172294","880098410172295","880098410172296","880098410172357","880098410172358","880098410172359","880098410172360","880098410172361","880098410172362","880098410172363","880098410172364","880098410172365","880098410172366","880098410172367","880098410172368","880098410172369","880098410172370","880098410172371","880098410172372","880098410172373","880098410172374","880098410172375","880098410172376","S20098410160933","S20098410160933","V6098410163008","V6098410163029","V6098410163159","V6098410163181","V6098410163183","V6098410163186","V6098410163210","V6098410163226","V6098410163229","V6098410163238","V6098410163249","V6098410163256","V6098410163258","V6098410163259","V6098410163262","V6098410163271","V6098410163274","V6098410163279","V6098410163293","V6098410165599","V6098410167047","V6098410167052","V6098410167097","V6098410167098","V6098410167150","V6098410167151","V6098410167152","V6098410167153","V6098410167256","V6098410167332","V6098410167334","V6098410167397","V6098410167405","V6098410167534","V6098410167620","V6098410167623","V6098410167624","V6098410167626","V6098410167635","V6098410167638","V6098410167639","V6098410167640","V6098410167653","V6098410167670","V6098410167786","V6098410167788","V6098410167789","V6098410167790","V6098410167796","V6098410167817","V6098410167819","V6098410167820","V6098410167826","V6098410167829","V6098410167833","V6098410167834","V6098410168100","V6098410168102","V6098410168103","V6098410168106","V6098410168108","V6098410168109","V6098410168117","V6098410168122","V6098410168123","V6098410168124","V6098410168126","V6098410168128","V6098410168129","V6098410168134","V6098410168158","V6098410168159","V6098410168160","V6098410168161","V6098410168162","V6098410168163","V6098410168164","V6098410168165","V6098410168167","V6098410168168","V6098410168170","V6098410168172","V6098410168174","V6098410168176","V6098410168178","V6098410168179","V6098410168180","V6098410168181","V6098410168182","V6098410168183","V6098410168184","V6098410168188","V6098410168195","V6098410168196","V6098410168257","V6098410168259","V6098410168262","V6098410168265","V6098410168271","V6098410168273"};
+		Map<String,Object> inPara = new HashMap<String, Object>();
+		inPara.put("DeviceNumber", orderMap.get("DeviceNumber"));
+		inPara.put("PageIndex", "1");
+		inPara.put("PageCount", "500");
+		inPara.put("BeginDate", "1970-01-01");
+		inPara.put("EndDate", new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+		
+		String result = dm_3rd_interfaceService.testDS("b2fdc8b4-a1f8-4efa-906c-b03fdc52a90a", inPara);
+		
+		if (StringUtils.isNotEmpty(result)) {
+			try {
+				Map<String, Object> resultMap = JsonToMap.gson2Map(result);
+				if (resultMap != null) {
+					Map<String, Object> resultDataMap = (Map<String, Object>) resultMap.get("Result");
+					if(resultDataMap!=null){
+						//System.out.println("有数据啦:"+c);
+						return (List<Map<String, Object>>) resultDataMap.get("AlarmList");
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		
+		return null;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Map<String, Object>> getDeviceHisTrack(String orderCode,Map<String, Object> queryMap) {
+		
+		String sql = "select * from fk_orderinfo where code=? and deleted=0";
+		Map<String,Object> orderMap = mysqlSpringJdbcBaseDao.queryForMap(sql, orderCode);
+		
+		//String[] cc = {"880098410161444","880098410171679","880098410171828","880098410171829","880098410171833","880098410171917","880098410171918","880098410171919","880098410171920","880098410171921","880098410171922","880098410171923","880098410171924","880098410171925","880098410171926","880098410171927","880098410171929","880098410171930","880098410171931","880098410171932","880098410171933","880098410171934","880098410171936","880098410172237","880098410172238","880098410172239","880098410172240","880098410172241","880098410172242","880098410172243","880098410172244","880098410172245","880098410172246","880098410172247","880098410172248","880098410172249","880098410172250","880098410172251","880098410172252","880098410172253","880098410172254","880098410172255","880098410172256","880098410172257","880098410172258","880098410172259","880098410172260","880098410172261","880098410172262","880098410172263","880098410172264","880098410172265","880098410172266","880098410172267","880098410172268","880098410172270","880098410172271","880098410172272","880098410172273","880098410172275","880098410172276","880098410172277","880098410172278","880098410172279","880098410172280","880098410172281","880098410172282","880098410172283","880098410172284","880098410172285","880098410172286","880098410172287","880098410172288","880098410172289","880098410172290","880098410172291","880098410172292","880098410172293","880098410172294","880098410172295","880098410172296","880098410172357","880098410172358","880098410172359","880098410172360","880098410172361","880098410172362","880098410172363","880098410172364","880098410172365","880098410172366","880098410172367","880098410172368","880098410172369","880098410172370","880098410172371","880098410172372","880098410172373","880098410172374","880098410172375","880098410172376","S20098410160933","S20098410160933","V6098410163008","V6098410163029","V6098410163159","V6098410163181","V6098410163183","V6098410163186","V6098410163210","V6098410163226","V6098410163229","V6098410163238","V6098410163249","V6098410163256","V6098410163258","V6098410163259","V6098410163262","V6098410163271","V6098410163274","V6098410163279","V6098410163293","V6098410165599","V6098410167047","V6098410167052","V6098410167097","V6098410167098","V6098410167150","V6098410167151","V6098410167152","V6098410167153","V6098410167256","V6098410167332","V6098410167334","V6098410167397","V6098410167405","V6098410167534","V6098410167620","V6098410167623","V6098410167624","V6098410167626","V6098410167635","V6098410167638","V6098410167639","V6098410167640","V6098410167653","V6098410167670","V6098410167786","V6098410167788","V6098410167789","V6098410167790","V6098410167796","V6098410167817","V6098410167819","V6098410167820","V6098410167826","V6098410167829","V6098410167833","V6098410167834","V6098410168100","V6098410168102","V6098410168103","V6098410168106","V6098410168108","V6098410168109","V6098410168117","V6098410168122","V6098410168123","V6098410168124","V6098410168126","V6098410168128","V6098410168129","V6098410168134","V6098410168158","V6098410168159","V6098410168160","V6098410168161","V6098410168162","V6098410168163","V6098410168164","V6098410168165","V6098410168167","V6098410168168","V6098410168170","V6098410168172","V6098410168174","V6098410168176","V6098410168178","V6098410168179","V6098410168180","V6098410168181","V6098410168182","V6098410168183","V6098410168184","V6098410168188","V6098410168195","V6098410168196","V6098410168257","V6098410168259","V6098410168262","V6098410168265","V6098410168271","V6098410168273"};
+		Map<String,Object> inPara = new HashMap<String, Object>();
+		inPara.put("DeviceNumber", orderMap.get("DeviceNumber"));
+		inPara.put("PageIndex", "1");
+		inPara.put("PageCount", "500");
+		
+		String startDate = (String) queryMap.get("startDate");
+		String endDate = (String) queryMap.get("EndDate");
+		
+		String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+		inPara.put("BeginDate", startDate == null ? today : startDate);
+		inPara.put("EndDate", endDate == null ? today : endDate);
+	
+		String result = dm_3rd_interfaceService.testDS("94a2ad81-4aa0-4814-8d6d-21a33e92456c", inPara);
+		if (StringUtils.isNotEmpty(result)) {
+			try {
+				Map<String, Object> resultMap = JsonToMap.gson2Map(result);
+				if (resultMap != null) {
+					Map<String, Object> resultDataMap = (Map<String, Object>) resultMap.get("Result");
+					if(resultDataMap!=null){
+						//System.out.println("有数据啦:"+c);
+						return (List<Map<String, Object>>) resultDataMap.get("TrackList");
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return null;
+	}
+
+	
+}

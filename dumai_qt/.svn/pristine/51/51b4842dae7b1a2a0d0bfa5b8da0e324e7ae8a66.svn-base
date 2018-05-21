@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><project-modules id="moduleCoreId" project-version="1.5.0">
+    <wb-module deploy-name="dumai_qt">
+        <wb-resource deploy-path="/" source-path="/WebRoot" tag="defaultRootSource"/>
+        <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
+        <dependent-module archiveName="aabss_global_mysql.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/aabss_global_mysql/aabss_global_mysql">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="dumai_source_java.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/dumai_source_java/dumai_source_java">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="dumai_new_java.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/dumai_new_java/dumai_new_java">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <dependent-module archiveName="dumai_zichan_java.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/dumai_zichan_java/dumai_zichan_java">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
+        <property name="java-output-path" value="/dumai_qt/WebRoot/WEB-INF/classes"/>
+        <property name="context-root" value="/dumai_qt"/>
+    </wb-module>
+</project-modules>

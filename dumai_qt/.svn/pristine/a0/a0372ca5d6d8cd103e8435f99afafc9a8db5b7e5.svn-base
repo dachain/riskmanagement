@@ -1,0 +1,59 @@
+/**
+ * Created by Administrator on 2017/4/17 0017.
+ */
+var myLogin = angular.module('myLogin', []);
+myLogin.controller('loginCtrl',['$scope','$http',function ($scope,$http) {
+$http.get("/dumai_qt/verification.do").success(function(data){
+	console.log(data)
+ 	$scope.colResults=data;
+	$scope.num1=$scope.colResults.num1;
+	$scope.num2=$scope.colResults.num2;
+	$scope.arr=$scope.colResults.arr;
+	$scope.result=$scope.colResults.result;
+	$scope.hidden=$scope.result;
+	console.log($scope.hidden)
+	$("#resultJYZSOA").val($scope.result);
+	console.log($("#resultJYZSOA").val())
+}).error(function(error){
+	console.log(error)
+})
+
+    $scope.changeYzm=function () {
+		$http.get("/dumai_qt/verification.do").success(function(data){
+         	$scope.colResults=angular.fromJson(data);
+        	$scope.num1=$scope.colResults.num1;
+        	$scope.num2=$scope.colResults.num2;
+        	$scope.arr=$scope.colResults.arr;
+        	$scope.result=$scope.colResults.result;
+        	$scope.hidden=$scope.result;
+        	$("#resultJYZSOA").val($scope.hidden);
+        }).error(function(){
+        	alert("获取验证码错误")
+        })
+    };
+   
+    $scope.myKeyup = function(e){
+        //IE 编码包含在window.event.keyCode中，Firefox或Safari 包含在event.which中
+        var keycode = window.event?e.keyCode:e.which;
+      
+        if(keycode==13){
+            $scope.login();
+        }
+    };
+    var flag=false;
+    $(":text").focus( function () {
+        $(this).css("color","#fdffff")
+    });
+    $scope.extra=function () {
+        flag=!flag;
+        if(flag){
+            $(".extra img").css("display","none");
+        }else{
+            $(".extra img").css("display","block");
+        }
+    };
+    $(".circle_pure").mouseenter(function () {
+        $(this).addClass("on");
+    });
+
+}]);

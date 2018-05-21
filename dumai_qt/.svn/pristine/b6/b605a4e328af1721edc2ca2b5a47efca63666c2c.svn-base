@@ -1,0 +1,47 @@
+package com.newdumai.web.setting.model;
+
+import com.newdumai.global.vo.LoginVo;
+import com.newdumai.ht.manager.rule.rule.CustomModelService;
+import com.newdumai.web.util.WebUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Map;
+
+/**
+ * 前台模型管理
+ * <p>
+ * Created by zhang on 2017/4/24.
+ */
+@Controller
+public class CustomModelController {
+
+    @Autowired
+    CustomModelService customModelService;
+
+    @RequestMapping(value = "/model/toLoanFrontModelList.do", method = {RequestMethod.POST, RequestMethod.GET})
+    public String toLoanFrontList(HttpServletRequest request) {
+        return "setting/model/loanFrontModelList";
+    }
+
+    @RequestMapping(value = "/model/getModelList.do", method = {RequestMethod.POST, RequestMethod.GET})
+    @ResponseBody
+    public String loanFrontList(HttpServletRequest request) {
+        String result = "";
+        try {
+            LoginVo login = (LoginVo) request.getSession().getAttribute("login");
+            String subEntityId = login.getSub_entity_id();
+            Map<String, Object> map = WebUtil.request2Map(request);
+            map.put("sub_entity_id", subEntityId);
+            result = customModelService.getModels(map);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+}

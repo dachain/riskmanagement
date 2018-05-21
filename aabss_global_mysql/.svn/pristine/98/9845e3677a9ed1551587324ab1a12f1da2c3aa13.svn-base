@@ -1,0 +1,130 @@
+package com.newdumai.loanFront.impl;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import javax.script.Bindings;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.poi.util.StringUtil;
+
+import com.newdumai.dumai_data.dm_3rd_interface.Dm_3rd_interfaceService;
+import com.newdumai.global.dao.Dumai_sourceBaseDao;
+import com.newdumai.util.JsonToMap;
+import com.newdumai.util.MapObjUtil;
+
+public class AuditServiceUtil {
+	
+	private static ScriptEngine engine = new ScriptEngineManager().getEngineByName("js");
+	
+	/**
+	 * 取得数据源code（去重）
+	 * @param ruleList
+	 * @param columeName
+	 * @return
+	 */
+	public static Set<String> getInterfacesCodes(List<Map<String, Object>> ruleList, String columeName) {
+		Set<String> interfacesCode = new HashSet<String>();
+		if(CollectionUtils.isNotEmpty(ruleList)){
+			for (Map<String, Object> rule : ruleList) {
+				String[] split = ((String) rule.get(columeName)).split(",");
+				for (String is : split) {
+					interfacesCode.add(is);
+				}
+			}
+		}
+		return interfacesCode;
+	}
+	
+	/**
+	 *  取得大map
+	 * @param dumai_sourceBaseDao
+	 * @param dm_3rd_interfaceService
+	 * @param orderMap
+	 * @param interfacesCodeSet
+	 * @return
+	 */
+	public static Map<String, Object> getDm_3rd_interfacesResult_jianquan(Dumai_sourceBaseDao dumai_sourceBaseDao,Dm_3rd_interfaceService dm_3rd_interfaceService,Map<String, Object> orderMap, Set<String> interfacesCodeSet){
+		Map<String, Object> interfacesResultMap = new HashMap<String, Object>();
+		Map<String, Object> inPara;
+		for (String interfaceCode : interfacesCodeSet) {
+			inPara = getInPara(dumai_sourceBaseDao,interfaceCode, orderMap);
+			String is_result = (String) dm_3rd_interfaceService.testDS(interfaceCode,inPara);
+			Map<String, Object> result;
+			try {
+				result = JsonToMap.jsonToMap(is_result);
+			} catch (Exception e) {
+				result = null ;
+				e.printStackTrace();
+			}
+			interfacesResultMap.put(interfaceCode, result);
+		}
+		return interfacesResultMap;
+	}
+	
+	/**
+	 * 取得输入参数
+	 * @param dumai_sourceBaseDao
+	 * @param dm_3rd_interface_code
+	 * @param orderMap
+	 * @return
+	 */
+	public static Map<String, Object> getInPara(Dumai_sourceBaseDao dumai_sourceBaseDao,String dm_3rd_interface_code, Map<String, Object> orderMap) {
+		Map<String, Object> returnMap = MapObjUtil.getMapSortedByKey();
+		List<Map<String, Object>> nameTransList = dumai_sourceBaseDao.queryForList("SELECT * FROM dm_3rd_interface_para WHERE 1=1 and `type`= '0' AND dm_3rd_interface_code= ? " ,new Object[]{dm_3rd_interface_code});
+		if(CollectionUtils.isEmpty(nameTransList)){
+			return null;
+		}
+		for (Map<String, Object> nameMap : nameTransList) {
+			String or_name = (String) nameMap.get("fk_orderinfo_name");
+			String is_name = (String) nameMap.get("name");
+			// 根据参数映射转换参数
+			if (orderMap.containsKey(or_name)) {
+				returnMap.put(is_name, orderMap.get(or_name));
+			}
+		}
+		return returnMap;
+	}
+	public static Boolean auditOne_execute(String v1, String v2, String ops) {
+		int op = Integer.valueOf(ops);
+		Bindings bindings = engine.createBindings();
+		bindings.put("value", v1);
+		bindings.put("value2", v2);
+		boolean b = false;//默认和无结果未命中
+		try {
+			switch (op) {
+			case 1:
+				b = (Boolean) engine.eval("value>=value2", bindings);
+				break;
+			case 2:
+				b = (Boolean) engine.eval("value<value2", bindings);
+				break;
+			case 3:
+				b = (Boolean) engine.eval("value<=value2", bindings);
+				break;
+			case 4:
+				b = (Boolean) engine.eval("value!=value2", bindings);
+				break;
+			// case 5:
+			// b= (Boolean) engine.eval("value!=value2");break;
+			case 7:
+				b = v1.contains(v2);
+				break;
+			case 8:
+				b = (Boolean) engine.eval("value>value2", bindings);
+				break;
+			default:
+				b = v1.equals(v2);
+			}
+		} catch (ScriptException e) {
+			b = false;
+		}
+		return b;
+	}
+}

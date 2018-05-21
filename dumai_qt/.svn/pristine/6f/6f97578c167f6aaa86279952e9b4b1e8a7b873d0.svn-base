@@ -1,0 +1,106 @@
+<%@page contentType="text/html; charset=UTF-8" trimDirectiveWhitespaces="true" language="java" %>
+<%@ include file="/WEB-INF/views/common/taglibs.jsp" %>
+<%@ taglib prefix="common" tagdir="/WEB-INF/tags/common" %>
+<!DOCTYPE html>
+<html>
+	<head>
+	    <title>涉诉</title>
+		<meta name="renderer" content="webkit">
+		<link rel="stylesheet" href="${ctx}/css/amazeui.css" />
+		<link rel="stylesheet" href="${ctx}/css/app.css" />
+		<link href="${ctx}/css/style.css" type=text/css rel=stylesheet>
+		<link href="${ctx}/css/oaframecontentliststyle.css" type=text/css rel=stylesheet>
+		<script src="${ctx}/js/lib/jquery-easyui-1.5/jquery.min.js"></script>
+		<script src="${ctx}/js/global.js"></script>
+		<script src="${ctx}/js/amazeui.js"></script>
+		<style type="text/css">
+			caption {
+				padding-left:10px;font-weight:bold;font-size: 14px;line-height:30px;height: 30px;text-align: left;vertical-align:middle;
+			}
+			.base-info td{
+				padding-left: 20px;
+			}
+		</style>
+	</head>
+	<body >
+		<common:head/>
+		<h2 style="text-align: center;height: 60px;line-height: 60px;vertical-align: middle;">涉诉</h2>
+		<table style="width: 100%">
+			<tr style="text-align: center;font-size: 14px">
+				<td style="width: 100px">序号</td>
+				<td style="width: 14%">类型</td>
+				<td style="width: 14%">涉案事由</td>
+				<td style="width: 14%">诉讼地位</td>
+				<td style="width: 14%">涉案金额</td>
+				<td style="width: 14%">执行状态</td>
+				<td style="width: 14%">立案时间</td>
+				<td style="width: 14%">结案时间</td>
+			<tr>
+			<tbody id="appeals">
+			
+			</tbody>
+		</table>
+		<script type="text/javascript">
+			$.ajax({
+				url:"${ctx}/report/dataDetail.do?report=3&code=${param.code}",
+				type:"post",
+				success:function(result){
+					if(result.code==0){
+						fillData(result.body[0]);
+					}
+				},
+				error:function(){
+					
+				}
+			});
+			
+			function fillData(data){
+				if(data.success!="s") return;
+				
+				var allmsglist = data.allmsglist;
+				var tbody = $("#appeals");
+				var i = 0;
+				$.each(allmsglist,function(key,row){
+					var tr = $("<tr></tr>");
+					var rowData = getRowData(row.onemsglist);
+					tr.append("<td style='text-align:center'>"+(i+1)+"</td>");
+					tr.append("<td style='text-align:center'>"+(row.type)+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.reason+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.position+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.amount+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.performStatus+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.filingTime+"</td>");
+					tr.append("<td style='text-align:center'>"+rowData.concludingTime+"</td>");
+					
+					tbody.append(tr);
+					i++;
+				});
+			}
+			
+			function getRowData(onemsglist){
+				var rowData = {
+					position:"-",
+					amount:"-",
+					performStatus:"-",
+					filingTime:"-",
+					concludingTime:"-",
+					reason:"-"
+				};
+				for(var i in onemsglist){
+					var msg = onemsglist[i];
+					var propername = msg.propername;
+					switch(propername){
+						case "诉讼地位":rowData.position=msg.propervalue;break;
+						case "执行内容":rowData.amount=msg.propervalue.split(":")[1]||"-";break;
+						case "涉案金额":rowData.amount=msg.propervalue;break;
+						case "执行状态":rowData.performStatus=msg.propervalue;break;
+						case "立案时间":rowData.filingTime=msg.propervalue;break;
+						case "结案时间":rowData.concludingTime=msg.propervalue;break;
+						case "涉案事由":rowData.reason=msg.propervalue;break;
+					}
+				}
+				return rowData;
+			}
+		</script>
+	</body>
+</html>

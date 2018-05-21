@@ -1,0 +1,16 @@
+<%@page contentType="text/html; charset=utf-8" language="java"%>
+<%@ taglib prefix="common" tagdir="/WEB-INF/tags/common" %>
+<%@ include file="/WEB-INF/views/common/taglibs.jsp" %>
+<!DOCTYPE html>
+<html>
+	<head>
+	
+	<title>GPS报警</title>
+	
+	<script type="text/javascript">
+	</script>
+	</head>
+	<body>
+		
+	</body>
+</html>

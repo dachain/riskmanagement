@@ -1,0 +1,584 @@
+package com.newdumai.dumai_data.dm_3rd_interface.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import com.google.gson.Gson;
+import com.newdumai.dumai_data.dm_3rd_interface.Dm_3rd_interfaceService;
+import com.newdumai.dumai_data.dm_3rd_interface.util.CommonUtil;
+import com.newdumai.dumai_data.dm_3rd_interface.util.CostUtil;
+import com.newdumai.global.service.impl.Dumai_sourceBaseServiceImpl;
+import com.newdumai.order.company.CompanyOrderService;
+import com.newdumai.util.HttpClientUtil;
+import com.newdumai.util.InvokeMethod;
+import com.newdumai.util.JsonToMap;
+
+@Service("dm_3rd_interfaceService")
+public class Dm_3rd_interfaceServiceImpl extends Dumai_sourceBaseServiceImpl implements Dm_3rd_interfaceService {
+	@Autowired
+	private CompanyOrderService companyOrderService;
+	
+	/* block list begin */
+	@Override
+	public String list(String table, Map<String, Object> map) {
+		Map<String, Object> condition = getCondition_list(map);
+		return listPageBase(condition, gen_list_1(condition.get("condition").toString()), gen_list_2(condition.get("condition").toString(), getLimitUseAtSelectPage(map)));
+	}
+
+	private String gen_list_1(String condition) {
+		return "SELECT count(*) FROM dm_3rd_interface a,dm_3rd_interface_company b where  b.`code` = a.dm_3rd_interface_company_code " + condition;
+	}
+
+	private String gen_list_2(String condition, String limit) {
+		return "SELECT b.`name` AS company_name, a.* FROM dm_3rd_interface a,dm_3rd_interface_company b where b.`code` = a.dm_3rd_interface_company_code " + condition + limit;
+	}
+
+	private Map<String, Object> getCondition_list(Map<String, Object> map) {
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<Object> list = new ArrayList<Object>();
+		StringBuilder sb = new StringBuilder();
+		String is_able = (String) map.get("is_able");
+		if (StringUtils.isNotEmpty(is_able)) {
+			sb.append(" AND is_able = ? ");
+			list.add(is_able);
+		}
+		data.put("condition", sb.toString());
+		data.put("args", list.toArray());
+		return data;
+	}
+
+	/* block list end */
+
+	@Override
+	public float getInterfacesCost(String interfacesCodes) {
+		Map<String, Object> interfaceMap = dumai_sourceBaseDao.queryForMap("SELECT * FROM sys_interface_source WHERE `code`=?", interfacesCodes);
+		return Float.parseFloat(interfaceMap.get("cost_tuomin").toString());
+	}
+
+	@Override
+	public String toTestDS(String code) {
+		return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface_para WHERE `type`='0' and name <> '--' AND `dm_3rd_interface_code`='" + code + "'");
+	}
+
+	@Override
+	public String getDm_3rd_interface_companyList() {
+		return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface_company ");
+	}
+
+	@Override
+	public String get3rd_interfaces_by_interface_company_code(String dm_3rd_interface_company_code) {
+		return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface where dm_3rd_interface_company_code='"+dm_3rd_interface_company_code+ "'");
+	}
+	
+	@Override
+	public String getDm_3rd_interface_para(String dm_3rd_interface_code,String inOrOut) {
+		if(StringUtils.isEmpty(inOrOut)){
+			return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface_para where  dm_3rd_interface_code='"+dm_3rd_interface_code+ "'");
+		}else if("in".equals(inOrOut)){
+			return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface_para where `type`='0' and dm_3rd_interface_code='"+dm_3rd_interface_code+ "'");
+		}else{
+			return super.dumai_sourceBaseDao.executeSelectSql("SELECT * FROM dm_3rd_interface_para where `type`='1' and dm_3rd_interface_code='"+dm_3rd_interface_code+ "'");
+		}
+	}
+	
+	@Override
+	public int add_dm_3rd_interface(Map<String, Object> para) {
+		return add(para, "dm_3rd_interface");
+	}
+
+	/* block toUpdate begin */
+	@Override
+	public String toUpdate(String dm_3rd_interface_code) {
+		return super.dumai_sourceBaseDao.executeSelectSql(gen_toUpdate(dm_3rd_interface_code));
+	}
+
+	private String gen_toUpdate(String code) {
+		return "SELECT b.`name` AS company_name, a.* FROM dm_3rd_interface a,dm_3rd_interface_company b where b.`code` = a.dm_3rd_interface_company_code  and a.code= '" + code + "'";
+	}
+
+	/* block toUpdate end */
+
+	@Override
+	public int upadte_dm_3rd_interface(Map<String, Object> para) {
+		Map<String, Object> where = new HashMap<String, Object>();
+		where.put("code", para.remove("code"));
+		return Update(para, "dm_3rd_interface", where);
+	}
+	/**
+	 * 执行第三方数据源获取数据
+	 * 
+	 * @param dm_3rd_interface_code
+	 *            第三方数据源code
+	 * @param map
+	 *            输入参数map
+	 */
+	@SuppressWarnings("unchecked")
+	public String testDSRaw(String dm_3rd_interface_code, Map<String, Object> map) {
+		
+		//补全参数
+		map = correctIn_para(dm_3rd_interface_code, map);
+		
+		String in_para = new Gson().toJson(map);
+		
+		/**
+		 * search dm_3rd_interface_detail begin
+		 */
+		// 先查dm_3rd_interface_detail表,如果已存在正确的返回结果，则：result2有值返回result2,否则返回result
+		String detailSql = "SELECT * FROM dm_3rd_interface_detail WHERE dm_3rd_interface_code='" + dm_3rd_interface_code + "' and in_para = '" + in_para
+				+ "' order by opttime desc limit 1";
+		Map<String, Object> dm_3rd_interface_detailMap = dumai_sourceBaseDao.queryForMap(detailSql);
+		String result = null;
+		if (null != dm_3rd_interface_detailMap) {
+			result = (String) dm_3rd_interface_detailMap.get("result");
+		}
+		// 是否有结果
+		boolean hasResult = StringUtils.isNotEmpty(result);
+		// 存dm_3rd_interface_log
+		saveToDm_3rd_interface_log(dm_3rd_interface_code, in_para, hasResult ? "1" : "0");
+		/**
+		 * search dm_3rd_interface_detail end
+		 */
+		
+		// 获取接口定义
+		Map<String, Object> dm_3rd_interfaceMap = dumai_sourceBaseDao.queryForMap("SELECT * FROM dm_3rd_interface WHERE `code`='" + dm_3rd_interface_code + "'");
+		if (dm_3rd_interfaceMap == null) {
+			return null;
+		}
+		String is = (String) dm_3rd_interfaceMap.get("interface");// 专用接口
+		String is_save = (String) dm_3rd_interfaceMap.get("interface");// 是否保存结果
+		String in_interface = (String) dm_3rd_interfaceMap.get("in_interface");// 专用输入参数获取方式
+		try {
+			// 不为空返回result
+			if (hasResult) {
+				return result;
+			}
+			/**
+			 * generate in_para begin
+			 */
+			// 输入参数生成
+			Map<String, Object> inParams = null;
+			if (StringUtils.isNotEmpty(in_interface)) {
+				inParams = (Map<String, Object>) InvokeMethod.invoke(in_interface, new Class[] { Map.class, Map.class }, dm_3rd_interfaceMap, map);
+			}
+			else {
+				inParams = getIn_para(dm_3rd_interface_code, map);
+			}
+			
+			/**
+			 * generate in_para end
+			 */
+			/**
+			 * call interface begin
+			 */
+			// 接口调用得到结果
+			if (StringUtils.isNotEmpty(is)) {// 专用接口
+				result = (String) InvokeMethod.invoke(is, new Class[] { Map.class, Map.class }, dm_3rd_interfaceMap, map);
+			}
+			else {
+				String url = (String) dm_3rd_interfaceMap.get("url");
+				String is_post = (String) dm_3rd_interfaceMap.get("is_post");
+				String is_json = (String) dm_3rd_interfaceMap.get("in_type");
+				result = HttpClientUtil.exec(url, is_post, is_json,inParams);
+				System.out.println("请求数据源[" + dm_3rd_interfaceMap.get("name") + "]结果:" + result);
+				//result = FileUtils.readFileToString(new java.io.File("D:/fakedatas/" + dm_3rd_interface_code + ".json"), "UTF-8");
+			}
+			/**
+			 * call interface end
+			 */
+			
+			/**
+			 * check BaseCondition begin
+			 */
+			// 结果校验
+			String base_condition = (String) dm_3rd_interfaceMap.get("base_condition");
+			boolean success = CommonUtil.checkBaseCondition(result, base_condition);
+			if (!success) {
+				dumai_sourceBaseDao.update("update dm_3rd_interface set error = error + 1 where code = ? ", dm_3rd_interface_code);
+				return null;
+			}
+			/**
+			 * check BaseCondition end
+			 */
+			
+			/**
+			 * result begin
+			 */
+			String ret = result;
+			String result2 = null;
+			
+			if ("1".equals(is_save)) {
+				saveToDm_3rd_interface_detail(dm_3rd_interface_code, in_para, result,result2, base_condition);
+			}
+
+			return ret;
+			/**
+			 * result begin
+			 */
+		} catch (Exception e) {
+			e.printStackTrace();
+			// error ++
+			dumai_sourceBaseDao.update("update dm_3rd_interface set error = error + 1 where code = ? ", dm_3rd_interface_code);
+			return null;
+		}
+	}
+	/* block testDS begin */
+	/**
+	 * 执行第三方数据源获取数据
+	 * 
+	 * @param dm_3rd_interface_code
+	 *            第三方数据源code
+	 * @param map
+	 *            输入参数map
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public String testDS(String dm_3rd_interface_code, Map<String, Object> map) {
+		
+		// 获取接口定义
+		Map<String, Object> dm_3rd_interfaceMap = dumai_sourceBaseDao.queryForMap("SELECT * FROM dm_3rd_interface WHERE is_able='1' and `code`='" + dm_3rd_interface_code + "'");
+		if (dm_3rd_interfaceMap ==null ||  "0".equals(dm_3rd_interfaceMap.get("is_online"))) {
+			return null;
+		}
+		
+		//补全参数
+		map = correctIn_para(dm_3rd_interface_code, map);
+		
+		/**
+		 * search dm_3rd_interface_detail begin
+		 */
+		// 先查dm_3rd_interface_detail表,如果已存在正确的返回结果，则：result2有值返回result2,否则返回result
+		String in_para = new Gson().toJson(map);
+		String detailSql = "SELECT * FROM dm_3rd_interface_detail WHERE dm_3rd_interface_code='" + dm_3rd_interface_code + "' and in_para = '" + in_para
+				+ "' order by opttime desc limit 1";
+		Map<String, Object> dm_3rd_interface_detailMap = dumai_sourceBaseDao.queryForMap(detailSql);
+		String result = null;
+		if (null != dm_3rd_interface_detailMap) {
+			result = (String) dm_3rd_interface_detailMap.get("result");
+		}
+
+		// 是否有结果
+		boolean hasResult = StringUtils.isNotEmpty(result);
+		// 存dm_3rd_interface_log
+		saveToDm_3rd_interface_log(dm_3rd_interface_code, in_para, hasResult ? "1" : "0");
+
+		/**
+		 * search dm_3rd_interface_detail end
+		 */
+		
+		String is = (String) dm_3rd_interfaceMap.get("interface");// 专用接口
+		String is_save = (String) dm_3rd_interfaceMap.get("is_save");// 专用接口
+		String in_interface = (String) dm_3rd_interfaceMap.get("in_interface");// 专用输入参数获取方式
+		String out_interface = (String) dm_3rd_interfaceMap.get("out_interface");// 专用结果加工方式
+		try {
+			// 不为空返回result
+			if (hasResult) {
+				System.out.println("从数据库获得数据源[" + dm_3rd_interfaceMap.get("name") + "]结果:" + result);
+				if (StringUtils.isNotEmpty(out_interface)) {// 专用加工
+					result = (String) InvokeMethod.invoke(out_interface, new Class[] { Map.class, String.class }, dm_3rd_interfaceMap, result);
+				}
+				return result;
+			}
+			/**
+			 * generate in_para begin
+			 */
+			// 输入参数生成
+			Map<String, Object> inParams = null;
+			if (StringUtils.isNotEmpty(in_interface)) {
+				inParams = (Map<String, Object>) InvokeMethod.invoke(in_interface, new Class[] { Map.class, Map.class }, dm_3rd_interfaceMap, map);
+			}
+			else {
+				inParams = getIn_para(dm_3rd_interface_code, map);
+			}
+			
+			/**
+			 * generate in_para end
+			 */
+
+			/**
+			 * call interface begin
+			 */
+			// 接口调用得到结果
+			if (StringUtils.isNotEmpty(is)) {// 专用接口
+				result = (String) InvokeMethod.invoke(is, new Class[] { Map.class, Map.class }, dm_3rd_interfaceMap, map);
+			}
+			else {
+				String url = (String) dm_3rd_interfaceMap.get("url");
+				String is_post = (String) dm_3rd_interfaceMap.get("is_post");
+				String is_json = (String) dm_3rd_interfaceMap.get("in_type");
+				result = HttpClientUtil.exec(url, is_post, is_json,inParams);
+				System.out.println("请求数据源[" + dm_3rd_interfaceMap.get("name") + "]结果:" + result);
+				//result = FileUtils.readFileToString(new java.io.File("D:/fakedatas/" + dm_3rd_interface_code + ".json"), "UTF-8");
+				//System.out.println("读取伪造数据:[" + dm_3rd_interfaceMap.get("name") + "]结果:" + result);
+			}
+			/**
+			 * call interface end
+			 */
+			
+			/**
+			 * check BaseCondition begin
+			 */
+			// 结果校验
+			String base_condition = (String) dm_3rd_interfaceMap.get("base_condition");
+			boolean success = CommonUtil.checkBaseCondition(result, base_condition);
+			if (!success) {
+				dumai_sourceBaseDao.update("update dm_3rd_interface set error = error + 1 where code = ? ", dm_3rd_interface_code);
+				return null;
+			}
+			/**
+			 * check BaseCondition end
+			 */
+			
+			/**
+			 * result begin
+			 */
+			String ret = result;
+			String result2 = null;
+			
+			if ("1".equals(is_save)) {
+				saveToDm_3rd_interface_detail(dm_3rd_interface_code, in_para, result,result2, base_condition);
+			}
+			
+			// 结果加工处理
+			if (StringUtils.isNotEmpty(out_interface)) {// 专用加工
+				result2 = (String) InvokeMethod.invoke(out_interface, new Class[] { Map.class, String.class }, dm_3rd_interfaceMap, result);
+				ret = result2;
+			}
+			return ret;
+			/**
+			 * result begin
+			 */
+		} catch (Exception e) {
+			e.printStackTrace();
+			// error ++
+			dumai_sourceBaseDao.update("update dm_3rd_interface set error = error + 1 where code = ? ", dm_3rd_interface_code);
+			return null;
+		}
+	}
+	
+	/**
+	 * 保存结果到dm_3rd_interface_detail
+	 * @param dm_3rd_interface_code
+	 * @param in_para
+	 * @param result
+	 * @param result2
+	 * @param base_condition
+	 * @return
+	 */
+	private String saveToDm_3rd_interface_detail(String dm_3rd_interface_code, String in_para, String result, String result2, String base_condition) {
+		Map<String, Object> save = new HashMap<String, Object>();
+		save.put("dm_3rd_interface_code", dm_3rd_interface_code);
+		save.put("in_para", in_para);
+		save.put("result", result);
+		save.put("result2", result2);
+		save.put("base_condition", base_condition);
+		return addAndRet(save, "dm_3rd_interface_detail");
+	}
+
+	/**
+	 * 
+	 * @param dm_3rd_interface_code
+	 * @param in_para
+	 * @return
+	 */
+	private String saveToDm_3rd_interface_log(String dm_3rd_interface_code, String in_para, String is_db) {
+		Map<String, Object> save = new HashMap<String, Object>();
+		save.put("dm_3rd_interface_code", dm_3rd_interface_code);
+		save.put("in_para", in_para);
+		save.put("is_db", is_db);
+		return addAndRet(save, "dm_3rd_interface_log");
+	}
+	
+	/**
+	 * 对输入参数进行修正<br/>
+	 * 遍历第三方数据源输入参数，对于有默认值的参数设置为默认值，无默认值的参数从<b>map</b>中取
+	 * @param dm_3rd_interface_code
+	 * @param map
+	 * @return
+	 */
+	private Map<String,Object> correctIn_para(String dm_3rd_interface_code, Map<String, Object> map){
+		Map<String,Object> result = new HashMap<String, Object>();
+		List<Map<String, Object>> params = dumai_sourceBaseDao.queryForList("SELECT name,value FROM dm_3rd_interface_para WHERE dm_3rd_interface_code = '" + dm_3rd_interface_code
+				+ "' and name <> '--' and type=0");
+		int size = params.size();
+		for (int i = 0; i < size; i++) {
+			Map<String, Object> param = params.get(i);
+			String name = (String) param.get("name");
+			String value = (String) param.get("value");
+			value = StringUtils.isEmpty(value) ?  (String)map.get(name) : value;
+			result.put(name, value);
+		}
+		return result;
+	}
+	
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getIn_para(String dm_3rd_interface_code, Map<String, Object> map) {
+		String split = "_";
+		List<Map<String, Object>> params = dumai_sourceBaseDao.queryForList("SELECT * FROM dm_3rd_interface_para WHERE dm_3rd_interface_code = '" + dm_3rd_interface_code
+				+ "' and name <> '--' and type=0");
+		Map<String, Object> resultMap = new HashMap<String, Object>();
+		int size = params.size();
+		for (int i = 0; i < size; i++) {
+			Map<String, Object> param = params.get(i);
+			String paraGroup = (String) param.get("para_group");
+			String name = (String) param.get("name");
+			//paraGroup = StringUtils.isEmpty(paraGroup) ? name : (paraGroup + "_" + name);
+			paraGroup = paraGroup == null ? "" : paraGroup;
+			String paramPaths[] = paraGroup.split(split);
+			Map<String, Object> current = resultMap;
+			
+			for (int j = 0; j < paramPaths.length; j++) {
+				String key = paramPaths[j];
+				if(StringUtils.isNotEmpty(key)){
+					Object o = current.get(key);
+
+					if (o instanceof Map) {
+						current = (Map<String, Object>) o;
+					}
+					else {
+						HashMap<String, Object> m = new HashMap<String, Object>();
+						current.put(key, m);
+						current = m;
+					}
+				}
+			}
+			String value = (String) param.get("value");
+			if (!StringUtils.isEmpty(value)) {
+				current.put(name, value);
+			}
+			else {
+				current.put(name, map.get(name));
+			}
+		}
+		return resultMap;
+	}
+	/* block testDS end */
+	
+
+	/* block validateInputOrder begin */
+	private List<Map<String, Object>> getValidates(String... validateIndentifiers) {
+		List<Map<String, Object>> validates = null;
+		List<Map<String, Object>> validates2 = new ArrayList<Map<String, Object>>();
+		try {
+			validates = JsonToMap.gson2List(IOUtils.toString(Dm_3rd_interfaceServiceImpl.class.getResourceAsStream("validates.json"), "utf-8"));
+			for (Map<String, Object> validate : validates) {
+				if(!validate.containsKey("disable")){
+					validates2.add(validate);
+				}
+			}
+		} catch (Exception e) { 
+			e.printStackTrace();
+			return validates2; 
+		}
+		if(CollectionUtils.isEmpty(validates2)){
+			return validates2 ;
+		}
+		if (validateIndentifiers != null) {
+			List<Map<String, Object>> validatesReturn = new ArrayList<Map<String, Object>>();
+			for (String validateIndentifier : validateIndentifiers) {
+				for (Map<String, Object> validate : validates2) {
+					if (validateIndentifier.equals(validate.get("identifier"))) {
+						validatesReturn.add(validate);
+						break;
+					}
+				}
+			}
+			return validatesReturn;
+		} else {
+			return validates2;
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> validateInputOrder(Map<String, Object> orderInfo, List<Map<String, Object>> validates) {
+		String sub_entity_id = (String) orderInfo.get("sub_entity_id");
+		Map<String, Object> validateResult = new HashMap<String, Object>();
+		validateResult.put("success", true);
+		if(CollectionUtils.isEmpty(validates)||!companyOrderService.isValidateBySub_entity_id(sub_entity_id)){
+			return validateResult;
+		}
+		int size = validates.size();
+		String[] dm_3rd_interface_codes = new String[validates.size()];
+		for (int i = 0; i < size; i++) {
+			dm_3rd_interface_codes[i] = (String) validates.get(i).get("dm_3rd_interface_code");
+		}
+		
+		//判断费用是否够用
+		boolean isBalanceEnough = CostUtil.isBalanceEnough(sub_entity_id, dm_3rd_interface_codes);
+		if (!isBalanceEnough) {
+			validateResult.put("success", false);
+			validateResult.put("identifier", "balanceNotEnough");
+			validateResult.put("invalidMsg", "费用不足!请联系客服");
+			return validateResult;
+		}
+		
+		for (Map<String, Object> validate : validates) {
+			String dm_3rd_interface_code = (String) validate.get("dm_3rd_interface_code");
+			String identifier = (String) validate.get("identifier");
+			Map<String, String> para_order = (Map<String, String>) validate.get("para_order");
+			List<Map<String, Object>> inParams = dumai_sourceBaseDao.queryForList("select * from dm_3rd_interface_para where type='0' and dm_3rd_interface_code=?", dm_3rd_interface_code);
+			Map<String, Object> inParamMap = new HashMap<String, Object>();
+			boolean valid = true;// 参数是否有效
+			for (Map<String, Object> inPara : inParams) {//参数转换
+				String name = (String) inPara.get("name");
+				String value = (String) inPara.get("value");
+				if (StringUtils.isEmpty(value)) {
+					String fk_orderinfo_name = para_order.get(name);
+					value = (String) orderInfo.get(fk_orderinfo_name);
+					if (StringUtils.isEmpty(value)) {
+						valid = false;
+						break;
+					}
+				}
+				inParamMap.put(name, value);
+			}
+			boolean flag = false;
+			if (valid) {
+				int chargeResult = CostUtil.charge(orderInfo,"进件验证:"+identifier+"--"+orderInfo.get("name"),dm_3rd_interface_code);
+				if (chargeResult == 0) {
+					validateResult.put("success", false);
+					validateResult.put("identifier", "chargeFail");
+					validateResult.put("invalidMsg", "扣费失败!费用不足或者商户被禁用!");
+					return validateResult;
+				}
+				String result = testDS(dm_3rd_interface_code, inParamMap);
+				if(result == null&&validate.containsKey("null_pass")){
+					flag = true;
+				}else{
+					String expression = (String) validate.get("expression");
+					flag = CommonUtil.evalExpression(result, expression, orderInfo);
+				}
+			} 
+			if (!flag) {
+				validateResult.put("success", false);
+				validateResult.put("identifier", identifier);
+				validateResult.put("invalidMsg", validate.get("invalidMsg"));
+				break;
+			}
+		}
+		return validateResult;
+	}
+	
+	@Override
+	public Map<String, Object> validateInputOrderAll(Map<String, Object> orderInfo) {
+		return validateInputOrder(orderInfo, getValidates((String[]) null));
+	}
+
+	@Override
+	public Map<String, Object> validateInputOrder(Map<String, Object> orderInfo, String... validateIndentifies) {
+		if (validateIndentifies == null || validateIndentifies.length == 0) {
+			Map<String, Object> validateResult = new HashMap<String, Object>();
+			validateResult.put("success", false);
+			return validateResult;
+		}
+		return validateInputOrder(orderInfo, getValidates(validateIndentifies));
+	}
+	/* block validateInputOrder end */
+}

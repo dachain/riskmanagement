@@ -1,0 +1,117 @@
+/**
+ * Created by Administrator on 2017/4/18 0018.
+ */
+var mySystem = angular.module('mySystem', ["ngGrid"]);
+
+mySystem.controller('mySystem',['$scope','$http',function ($scope,$http) {
+   $scope.addFlag=false;
+
+    $scope.addIP=function(){
+        $scope.addFlag=!$scope.addFlag;
+    };
+
+    $('.box1').click(function(){
+        $(this).addClass('checked').siblings().removeClass("checked");
+    });
+    
+    
+    
+ // 获取审计方式的业务类型
+    $http.get("/dumai_qt/sysmgr/funsettings/type.do").success(function(data){
+		 if(data){
+			 $scope.typeLists=angular.fromJson(data);
+		 }
+	 }).error(function(){
+		 $scope.typeLists=[{"name":"无数据"}];
+	 })
+	 
+    // 获取审计方式的业务类型变动
+	 $scope.bValue="21ff186a-77c6-45ec-a78c-956b2a31e092";
+	 $scope.changeData=function(){
+    	if($scope.bValue){
+    		$http.get("/dumai_qt/sysmgr/funsettings/bizLoad.do?type_code="+$scope.bValue).success(function(data){
+    			if(data){
+    				console.log(angular.fromJson(data))
+    			}
+    		}).error(function(){
+    			alert("无数据")
+    		})
+    	}else{
+    		alert("加载失败")
+    	}
+    }
+
+}]);
+mySystem.controller('systemGridCtrl',['$scope','$http',function ($scope,$http) {
+	// 获取白名单
+    $http.get("/dumai_qt/sysmgr/funsettings/load.do").success(function (data) {
+        $scope.body=angular.fromJson(data);
+//        console.log($scope.body)
+//        if($scope.white_ips){
+//        	console.log(1)
+//        }
+    });
+	
+	
+    // 获取数据查询设定业务类型
+	
+    $http.get("/dumai_qt/sysmgr/funsettings/type.do").success(function (data) {
+	    	if(data){
+				$scope.typesLists=angular.fromJson(data);
+			}
+	        $scope.types=angular.fromJson(data);
+	        $http.get("/dumai_qt/sysmgr/funsettings/dataViewLoad.do?type_code="+$scope.types[0].code).success(function (data) {
+	            $scope.customs=angular.fromJson(data);
+//	            for (var i=0;i<$scope.customs.length;i++){
+//	            	if($scope.customs[i].checked!="0"){
+//	            		$scope.customs[i].checked="checked='true'";
+//	            	}else{
+//	            		$scope.customs[i].checked="checked='false'";
+//	            	}
+//	            }
+	        });
+	    }).error(function(){
+			 $scope.typesLists=[{"name":"无数据"}];
+	 })
+    $scope.gridOptions={
+        data:'customs',
+        // enableRowSelection:false,
+
+        // checkboxHeaderTemplate:
+        columnDefs:[
+            {
+                field:'id',
+                displayName:'序号',
+                cellClass:'noCenter'
+            },
+            {
+                field:'name',
+                displayName:'名称',
+                cellClass:'noCenter'
+            },
+            {
+            	field:'description',
+            	displayName:'描述',
+            	cellClass:'noCenter'
+           	}
+        ],
+        showSelectionCheckbox:'true'
+    }
+    
+    // 数据查询设定业务类型变动 
+    $scope.aValue="21ff186a-77c6-45ec-a78c-956b2a31e092";
+	$scope.changeDatas=function(){
+    	if($scope.aValue){
+    		$http.get("/dumai_qt/sysmgr/funsettings/dataViewLoad.do?type_code="+$scope.aValue).success(function(data){
+    			if(data){
+    				$scope.result=angular.fromJson(data);
+    			}
+    		}).error(function(){
+    			alert("无数据")
+    		})
+    	}else{
+    		alert("加载失败")
+    	}
+    }
+
+}]);

@@ -1,0 +1,103 @@
+<%@ page contentType="text/html;charset=UTF-8" trimDirectiveWhitespaces="true"%>
+<%@ include file="/WEB-INF/views/common/taglibs.jsp" %>
+<!DOCTYPE html>
+<html lang="en" ng-app="myIndex">
+<head>
+	<meta charset="UTF-8">
+	<title>Title</title>
+	<link rel="stylesheet/less" href="${ctx}/static/css/model.less" type="text/less">
+	<link rel="stylesheet" href="${ctx}/static/css/bootstrap.css">
+	<link rel="stylesheet" href="${ctx}/static/css/jquery-ui.css">
+	<link rel="stylesheet" href="${ctx}/static/css/style.css">
+	<link rel="stylesheet" href="${ctx}/static/css/load.css">
+	<link rel="stylesheet" href="${ctx}/static/css/ng-grid.css">
+</head>
+<body>
+<div id="menu" ng-controller="myMenu">
+	<div class="header">
+		<ul>
+			<li><i class="icon_system"></i><span>系统设置</span></li>
+			<li><i class="icon_data"></i><span>数据报表</span></li>
+			<li><i class="icon_traffic"></i><span>数据流量</span></li>
+		</ul>
+		<h5><a href="#login">退出</a></h5>
+		<div class="info_header">
+			<label class="info_header_date"> <div class="markLine"></div><span class="dark"></span><p>时间: <input type="text" id="datepicker" ng-model="date"><i ng-click="dispear()" ></i></p></label>
+			<ul>
+				<li>贷前审核</li>
+				<li class="current">贷中跟踪</li>
+				<li>逾期催款</li>
+			</ul>
+			<label class="selectName"><i class="search"></i><input type="text" placeholder="请输入借款人身份证或是姓名" class="selectName"  ng-model="value" ng-blur="tipErr()"></label>
+		</div>
+	</div>
+	<div class="bodies">
+		<div class="info_content">
+			<div class="left">
+				<div class="member">
+					<img src="${ctx}/static/images/photosh.png" alt="">
+					<p>XXXXXXX</p>
+				</div>
+				<div class="business_type">
+					<ul class="business changeColor">
+						<h4 ng-click="togg('.business',togflag)"><span></span>业务类型<i class="xiala" ng-class="{true:'up',false:'down'}[togflag]" ></i></h4>
+						<li><a href="#/homePage">全部</a></li>
+						<li><a href="#/homePage">滴滴车分期</a></li>
+						<li><a href="#/homePage">爱抵贷</a></li>
+						<li><a href="#/homePage">爱质贷</a></li>
+						<li><a href="#/homePage">医美分期</a></li>
+					</ul>
+					<!--<ul class="dateSelect changeColor">-->
+					<!--<h4 ng-click="togg1('.dateSelect',togflag1)"><span></span>日期<i class="xiala" ng-class="{true:'up',false:'down'}[togflag1]" ></i></h4>-->
+					<!--<li>最近一周</li>-->
+					<!--<li>一月之内</li>-->
+					<!--<li>三月之内</li>-->
+					<!--</ul>-->
+					<ul class="result">
+						<li style="border-top: 1px solid #586772"><span class="normal"></span>正常 </li>
+						<li><span class="guanzhu"></span>关注</li>
+						<li><span class="gps"></span>GPS</li>
+					</ul>
+					<ul class="waterBox" >
+						<li><span class="ruleBox"></span><a href="#/ruleWater">规则池</a><i ng-class="{OFF:'bg1',ON:'bg2'}[flagNF]">启用</i></li>
+						<li><span class="modelBox"></span><a>模型池</a><i ng-class="{OFF:'bg2',ON:'bg1'}[flagNF]">停用</i></li>
+					</ul>
+
+				</div>
+			</div>
+			<div class="info_content1">
+				<ul ng-repeat="data_member in data_members" class="perList">
+					<li class="curDate">
+						<h5 ng-cloak><i class="calendar"></i>{{data_member.date}}</h5>
+					</li>
+					<li ng-repeat="every_member in every_members|filter:value" ng-dblclick="baseReport2()">
+						<div class="person_image"><p ng-bind="every_member.name"></p><img src="${ctx}/static/images/photosh.png" realSrc="${ctx}/static/images/photosh.png" alt="张三"></div>
+						<p><span>身份证号：</span><span ng-bind="every_member.id_card"></span></p>
+					</li>
+
+					<div class="clearfloat"></div>
+				</ul>
+
+				<ul ng-repeat="data_member in data_members">
+					<li ng-repeat="every_member in every_members|filter:value"></li>
+				</ul>
+
+			</div>
+			<div class="selectError" ng-class="{true:'show_1',false:'hide_1'}[tipSelectFlag]">
+				<p>暂无搜索相关信息</p>
+				<span class="sure" ng-click="closeTip()"></span>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>
+<script charset="utf-8" type="text/javascript" src="${ctx}/static/script/lib/less.min.js"></script>
+<script charset="utf-8" type="text/javascript">
+    less.watch();
+</script>
+<script src="${ctx}/static/script/lib/jquery.min.js"></script>
+<script src="${ctx}/static/script/lib/angular.js"></script>
+<script src="${ctx}/static/script/lib/jquery-ui.js"></script>
+<script src="${ctx}/static/script/lib/moment.js"></script>
+<script src="${ctx}/static/script/controller/loanMiddleControll.js"></script>

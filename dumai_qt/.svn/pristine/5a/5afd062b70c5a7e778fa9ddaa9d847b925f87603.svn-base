@@ -1,0 +1,195 @@
+/**
+ * Created by Administrator on 2017/4/17 0017.
+ */
+var myRule = angular.module('myRule', []);
+
+myRule.controller('myMenu3',['$scope','$http','$filter',function ($scope,$http,$filter) {
+    $scope.users=[{"id":"1", "type":"银行卡实名", "time":"未命中","dh_type": "0","dh_content": "是_否"}, {"id":"2", "type":"房贷", "time":"正常","dh_type": "0","dh_content": "是_否"}, {"id":"3", "type":"银行及非银机构失联名单", "time":"正常","dh_type": "0","dh_content": "是_否"}, {"id":"4", "type":"房贷", "time":"正常" ,"dh_type": "0","dh_content": "男_女"}, {"id":"5", "type":"房贷", "time":"正常","dh_type": "2","dh_content": "是_否"}, {"id":"6", "type":"房贷", "time":"正常","dh_type": "0","dh_content": "是_否"}, {"id":"7", "type":"房贷", "time":"正常","dh_type": "1","dh_content": "是_否"}];
+    $scope.reports=[{"id":"1", "name":"手机运营商数据", "time":"未命中"}, {"id":"2","name":"银行卡信息", "time":"正常"}, {"id":"3", "name":"同住人信息", "time":"正常"}, {"id":"4", "name":"涉诉", "time":"正常" }];
+    $( "#datepicker" ).datepicker({
+        onClose:function () {
+            $(".markLine").css({"border-right":"none","z-index":"-100"});
+        },
+        beforeShow:function () {
+            $(".markLine").css({"border-right":"none","z-index":"120"});
+        },
+        dateFormat: 'yy-mm-dd'
+    });
+    $scope.selectedIndex="credit_before";
+    $scope.cutoverTab=function (type) {
+        $scope.selectedIndex=type;
+    };
+    var aryNo=[],aryOk=[],aryRe=[];
+    $scope.togflag=false;$scope.togflag1=false;
+    $scope.togg=function (className) {
+        window.location.href="#homePage";
+        $scope.togflag=! $scope.togflag;
+        $(className).children("li").slideToggle("slow");
+    };
+    $scope.togg1=function (className) {
+        $scope.togflag1=! $scope.togflag1;
+        $(className).children("li").slideToggle("slow");
+    };
+    $scope.flagNF="ON";
+    $scope.$watch($scope.flagNF,function () {
+        console.log() ;
+    }) ;//这个以后要根据后台给的选择来写
+    $http.get("data/member.json").success(function (data) {
+        $scope.data_members=angular.fromJson(data);
+        $.each(data,function (index,data) {
+            $scope.every_members=angular.fromJson(data).person; //包括的只是个人的情况，没有日期
+            $.each($scope.every_members,function (index,data) {
+                if(data.status == 0){
+                    aryNo.push(data)
+                }else if(data.status == 1){
+                    aryOk.push(data)
+                }else if(data.status == 2){
+                    aryOk.push(data)
+                }
+            })
+
+        });
+
+        var result = $filter('filter')(  $scope.data_members,$scope.value);
+
+        $scope.tipErr=function () {
+            $scope.n=$(".info_header ul li").length;
+            $scope.m=$scope.data_members.length;
+            if($(".curDate").siblings().length == $scope.n*$scope.m){
+                $scope.tipSelectFlag=true;
+            }
+        };
+        $scope.closeTip=function () {
+            $scope.tipSelectFlag=false
+        };
+        $scope.noNum=aryNo.length;
+        $scope.okNum=aryOk.length;
+        $scope.reNum=aryRe.length;
+
+    }).error(function () {
+        alert("请求失败")
+    });
+    $(":text").focus( function () {
+        $(this).css("color","#fdffff")
+    });
+    $scope.date=moment(new Date()).format('YYYY-MM-DD');
+    $scope.reportFlag1=false;$scope.detailFlag=false;$scope.liListFlag1=false;$scope.liListFlag2=false;$scope.liListFlag3=false;$scope.tongzhuFlag=false;$scope.moveFlag=false;$scope.litiFlag=false;$scope.duoFlag=false;
+
+    $scope.ruleFlag1=false; $scope.ruleFlag2=false;
+    $scope.ruleAry1=[]; $scope.ruleAry2=[];
+    $scope.tipFlag=false;
+
+    $scope.backIndex=function () {
+        window.location.href="#homePage";
+    };
+    $http.get("data/power.json").success(function (data) {
+        $scope.powerArys=angular.fromJson(data);
+        angular.forEach($scope.powerArys,function(item,index){
+            item.statusflag="button_kaiqi";
+            item.status1="0";
+        });
+        $scope.changeItem=function(item){
+            if(item.statusflag == "button_kaiqi"){
+                item.statusflag="button_guanbi";
+                item.status1="1";
+            }
+            else{
+                item.status1="0";
+                item.statusflag="button_kaiqi"
+            }
+        };
+        $scope.changeAll_1=function(){
+            $scope.ruleFlag1=!$scope.ruleFlag1;
+            var  a=0;
+            angular.forEach($scope.powerArys,function(item,index){
+                if(item.statusflag == "button_kaiqi"){
+                    a=1;
+                    return;
+                }});
+            if(a == 0){
+                angular.forEach($scope.powerArys,function(item,index){
+                    item.statusflag="button_kaiqi";
+                })
+            } else{
+                angular.forEach($scope.powerArys,function(item,index){
+                    item.statusflag="button_guanbi"
+                })
+            }
+        }
+
+
+
+    });
+    $http.get("data/power2.json").success(function (data) {
+        $scope.power2Arys=angular.fromJson(data);
+        angular.forEach($scope.power2Arys,function(item,index){
+            item.statusflag="button_kaiqi";
+            item.status2="0";
+        });
+        $scope.changeItem=function(item){
+            if(item.statusflag == "button_kaiqi"){
+                item.statusflag="button_guanbi";
+                item.status2="1";
+            }
+            else{
+                item.statusflag="button_kaiqi";
+                item.status2="0";
+            }
+        };
+        $scope.changeAll_2=function(){
+            $scope.ruleFlag2=!$scope.ruleFlag2;
+            var  a=0;
+            angular.forEach($scope.power2Arys,function(item,index){
+                if(item.statusflag == "button_kaiqi"){
+                    a=1;
+                    return;
+                }});
+            if(a == 0){
+                angular.forEach($scope.power2Arys,function(item,index){
+                    item.statusflag="button_kaiqi";
+                })
+            } else{
+                angular.forEach($scope.power2Arys,function(item,index){
+                    item.statusflag="button_guanbi"
+                })
+            }
+        }
+
+    });
+    // $scope.tJRule=function () {
+    //    var aa= $(".square1 li .button_kaiqi").parent().children(".rule_tit");
+    //     var bb= $(".square2 li .button_kaiqi").parent().children(".rule_tit");
+    //     $scope.$watch(aa,function (o,n) {
+    //         console.log(o,n)
+    //     })
+    //     if(aa || bb ){
+    //         $scope.tipFlag=true;
+    //     }
+    //     angular.forEach(aa,function (item,index) {
+    //         var con=$(item).children()[0].innerHTML;
+    //         $scope.ruleAry1.push(con);
+    //     });
+    //     angular.forEach(bb,function (item,index) {
+    //         var con=$(item).children()[0].innerHTML;
+    //         $scope.ruleAry2.push(con);
+    //     })
+    //
+    // };
+
+    $scope.tJRule=function () {
+        $scope.tipFlag=true;
+        $scope.a=[];$scope.b=[];
+        angular.forEach($scope.powerArys,function(item,index){
+            if(item.statusflag == "button_kaiqi"){
+                $scope.a.push(item)
+            }});
+        angular.forEach($scope.power2Arys,function(item,index){
+            if(item.statusflag == "button_kaiqi"){
+                $scope.b.push(item)
+            }});
+        console.log( $scope.a,$scope.b)
+    };
+    $scope.tipClose=function () {
+        $scope.tipFlag=false;
+    };
+}]);

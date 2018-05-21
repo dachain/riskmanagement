@@ -1,0 +1,76 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.zhihui;
+
+import com.newdumai.util.EncryptUtils;
+import com.newdumai.util.HttpClientUtil;
+import org.apache.commons.lang.StringUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Created by zhang on 2017/6/21.
+ */
+public class ZhiHuiInterface {
+
+    //智汇apikey
+    public static final String apikey = "45cb6252-03e7-4762-ad05-04dcb12e6967";
+    //智汇密钥
+    public static final String password = "10293847";
+
+    /**
+     * 查询理赔记录信息
+     *
+     * @param dm_3rd_interfaceMap
+     * @param in_para
+     * @return
+     */
+    public static String getRecord(Map<String, Object> dm_3rd_interfaceMap, Map<String, Object> in_para) {
+        String result = null;
+        Map<String, Object> params = new HashMap<String, Object>();
+
+        //保单号
+        String policy_no = (String) in_para.get("policy_no");
+        //身份证号
+        String identify_no = (String) in_para.get("identify_no");
+        //保险公司 ID
+        String company_id = (String) in_para.get("company_id");
+
+        params.put("apikey", EncryptUtils.encrypt(apikey, password));
+        params.put("policy_no", EncryptUtils.encrypt(policy_no, password));
+        params.put("identify_no", EncryptUtils.encrypt(identify_no, password));
+        params.put("company_id", EncryptUtils.encrypt(company_id, password));
+
+        String url = (String) dm_3rd_interfaceMap.get("url");
+        String is_post = (String) dm_3rd_interfaceMap.get("is_post");
+        String is_json = (String) dm_3rd_interfaceMap.get("in_type");
+        String str = HttpClientUtil.exec(url, is_post, is_json, params);
+        if (StringUtils.isNotEmpty(str)) {
+            result = EncryptUtils.decrypt(str, password);
+        }
+        System.out.println("查询理赔记录：" + result);
+        return result;
+    }
+
+    /**
+     * 保险公司ID查询
+     *
+     * @param dm_3rd_interfaceMap
+     * @param inPara
+     * @return
+     */
+    public static String getCompanyId(Map<String, Object> dm_3rd_interfaceMap, Map<String, Object> inPara) {
+        String result = null;
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("apikey", EncryptUtils.encrypt(apikey, password));
+        String url = (String) dm_3rd_interfaceMap.get("url");
+        String is_post = (String) dm_3rd_interfaceMap.get("is_post");
+        String is_json = (String) dm_3rd_interfaceMap.get("in_type");
+        String str = HttpClientUtil.exec(url, is_post, is_json, params);
+        if (StringUtils.isNotEmpty(str)) {
+            result = EncryptUtils.decrypt(str, password);
+        }
+        System.out.println("智汇请求公司ID：" + result);
+        return result;
+    }
+
+}

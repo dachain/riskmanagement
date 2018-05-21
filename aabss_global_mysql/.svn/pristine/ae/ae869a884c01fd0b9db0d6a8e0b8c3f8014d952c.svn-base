@@ -1,0 +1,188 @@
+package com.newdumai.ht.auditing.task.impl;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.newdumai.global.dao.Dumai_sourceBaseDao;
+import com.newdumai.global.service.Dumai_sourceBaseService;
+import com.newdumai.global.vo.SqlSavePatrsVo;
+import com.newdumai.loanFront.AuditService;
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import com.google.gson.Gson;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.ht.auditing.task.AuditingTaskService;
+import com.newdumai.util.JsonToMap;
+import com.newdumai.util.TimeHelper;
+
+@Service("auditingTaskService")
+public class AuditingTaskServiceImpl extends BaseServiceImpl implements AuditingTaskService {
+
+    @Autowired
+    AuditService auditService;
+    @Autowired
+    private Dumai_sourceBaseDao sourceBaseDao;
+
+    @Override
+    public Map<String, Object> getByUserCode(String logincode, String flag) {
+        String sql = "select * from dh_task where user_code='" + logincode + "' and is_finish='" + flag + "' limit 1";
+        Map<String, Object> map = mysqlSpringJdbcBaseDao.queryForMap(sql);
+        // 如果为空，则分配一条未完成任务
+        if (null == map && "0".equals(flag)) {
+            String unDistribution = "select * from dh_task where user_code='' and is_finish='0' limit 1";
+            Map<String, Object> unDistributionMap = mysqlSpringJdbcBaseDao.queryForMap(unDistribution);
+            if (null != unDistributionMap) {
+                String taskcode = (String) unDistributionMap.get("code");
+                // 把电核员code更新到该任务中
+                String distribution = "update dh_task set user_code='" + logincode + "' where code ='" + taskcode + "'";
+                this.update(distribution);
+                unDistributionMap.put("user_code", logincode);
+            }
+            return unDistributionMap;
+        }
+        return map;
+    }
+
+    // 根据用户code先判断是走规则还是模型，然后获取电核任务的电核项信息
+    @Override
+    public String getConfigByUserCode(String logincode, String flag) {
+        String sys_company_typeSql = "SELECT a.* FROM sys_company_type AS a INNER JOIN dh_task AS b ON b.thetype = a.type_code INNER JOIN fk_orderinfo AS c ON b.order_code = c.`code` AND c.sub_entity_id = a.sub_entity_id WHERE b.is_finish = '0' AND b.user_code =?";
+        Map<String, Object> sys_company_typeMap = super.mysqlSpringJdbcBaseDao.queryForMap(sys_company_typeSql, logincode);
+        if (CollectionUtils.isEmpty(sys_company_typeMap)) {
+            return "";
+        }
+        String sql = "";
+        String rule_model = (String) sys_company_typeMap.get("rule_model");//1 规则，2模型
+        if ("1".equals(rule_model)) {
+            String sys_company_type_code = (String) sys_company_typeMap.get("code");
+            sql = "select a.* from dh_item a where a.dh_source_type='1' and a.manager_item_code in (select fk_guize_code from sys_company_type__fk_guize where sys_company_type_code = '" + sys_company_type_code + "')";
+        } else {
+            String sys_type_code = (String) sys_company_typeMap.get("type_code");
+            sql = "SELECT a.*,e.model_type FROM dh_item AS a,manager_model_group AS b,manager_model__manager_model_group AS c,manager_model__manager_item AS d,manager_model e where 1=1 and b.`code` = c.manager_model_group_code" +
+                    "and c.manager_model_code = d.manager_model_code AND a.manager_item_code = d.manager_item_code and e.code = c.manager_model_code and a.dh_source_type='2' and b.is_able='1' and e.is_able='1' and b.sys_type_code = '" + sys_type_code + "' ORDER BY model_type";
+        }
+        return super.mysqlSpringJdbcBaseDao.executeSelectSql(sql);
+    }
+
+
+    @Override
+    public String updateScoreResult(String data, String taskCode, String description) {
+        // 保存电核结果
+        Map<String, String> detailMap = new HashMap<String, String>();
+        detailMap.put("code", UUID.randomUUID().toString());
+        detailMap.put("task_code", taskCode);
+        detailMap.put("dh_content", data);
+        detailMap.put("description", description);
+        super.add("dh_task_detail", detailMap);
+
+        // 更新电核任务状态为已完成
+        Map<String, String> taskMap = new HashMap<String, String>();
+        taskMap.put("is_finish", "1");// 1 已完成
+        super.update("dh_task", taskMap, taskCode);
+
+        // 更新规则或模型的电核结果
+        auditService.Audit_DH(taskCode);
+
+        /** parse score result start */
+//		List<Map<String, Object>> dataList = JsonToMap.gson2List(data);
+//		float finalScore = 0;
+//		// 评分项结果
+//		Map<String, Object> scoreResultMap = super.mysqlSpringJdbcBaseDao.queryForMap("select * from manager_model_result AS a INNER JOIN dh_task AS b ON b.order_code = a.fk_orderinfo_code WHERE b.`code` =  ?", taskCode);
+//		// 评分结果
+//		String scoreResultStr = (String) scoreResultMap.get("result");
+//		List<Map<String, Object>> scoreResultList = JsonToMap.gson2List(scoreResultStr);
+//		if (!CollectionUtils.isEmpty(scoreResultList)) {
+//			for (Map map : scoreResultList) {
+//				String manager_item_code = (String) map.get("manager_item_code");
+//				// 更新电核项的评分
+//				for (Map dataMap : dataList) {
+//					String managerItemCode = (String) dataMap.get("manager_item_code");
+//					if (manager_item_code.equals(managerItemCode)) {
+//						String dh_content = (String) dataMap.get("dh_content");
+//						if (StringUtils.isEmpty(dh_content)) {
+//							continue;
+//						} else {
+//							float score = calScore(manager_item_code, dh_content);
+//							map.put("weight_score", score);
+//						}
+//					}
+//				}
+//			}
+//
+//			// 统计电核后的总分
+//			for (Map map : scoreResultList) {
+//				finalScore += (Float) map.get("weight_score");
+//			}
+//			scoreResultMap.put("result", new Gson().toJson(scoreResultList));
+//		}
+//		String updateSql = "udpate manager_model_result set final_result= '[" + new Gson().toJson(scoreResultMap) + "]',final_total_score=" + finalScore + " where fk_orderinfo_code=(select order_code from dh_task where code='" + taskCode + "'";
+//		// 更新评分项结果
+//		super.exec(updateSql);
+        /** parse score result end */
+        return "success";
+    }
+
+    // 电核项评分
+    private float calScore(String manager_item_code, String dh_content) {
+        float score = 0;
+        // 评分项配置与模型集关联关系
+        String result = super.findByPara("manager_model__manager_item", "manager_item_code='" + manager_item_code + "'");
+        Map<String, Object> resultMap = JsonToMap.gson2Map(result.replace("[", "").replace("]", ""));
+        String seperate_box = (String) resultMap.get("seperate_box");
+        if (StringUtils.isNotEmpty(seperate_box)) {
+            List<Map<String, Object>> listMap = JsonToMap.gson2List(seperate_box);
+            Map<String, String> optMap = new HashMap<String, String>();
+            optMap.put("=", "等于");
+            optMap.put(">", "大于");
+            optMap.put("<", "小于");
+            optMap.put(">=", "大于等于");
+            optMap.put("<=", "小于等于");
+            optMap.put("other", "其它");
+            for (Map<String, Object> map : listMap) {
+                String opt = (String) map.get("opt");
+                String value = (String) map.get("value");
+                if ((opt + value).equals(dh_content)) {
+                    return (Float) map.get("score");
+                }
+            }
+        }
+        return score;
+    }
+
+    @Override
+    public List<Map<String, Object>> getDmTask(String flag) {
+        String sql = "select * from dh_task_3rd_interface where 1=1 ";
+        if ("3".equals(flag)) {
+            sql += " and (is_finish = '0' or is_finish = '2')";
+        } else {
+            sql += " and is_finish = '" + flag + "'";
+        }
+        return super.mysqlSpringJdbcBaseDao.queryForList(sql);
+    }
+
+    @Override
+    public int saveDmDhDetail(Map<String, Object> map, String user_code) {
+        //更新线下数据源电核任务状态为完成
+        String dh_task_3rd_interface_code = (String) map.remove("code");
+        String updateSql = "update dh_task_3rd_interface set is_finish = '1',user_code=? where code = ?";
+        super.mysqlSpringJdbcBaseDao.update(updateSql, user_code, dh_task_3rd_interface_code);
+        //保存线下数据源电核结果
+        String code = UUID.randomUUID().toString();
+        map.put("code", code);
+        map.put("result", map.remove("out_para"));
+        map.put("succ_status", "1");
+        SqlSavePatrsVo vo = gen_add(map, "dm_3rd_interface_detail");
+        return sourceBaseDao.update(vo.getSql(), vo.getVal().toArray());
+    }
+
+    @Override
+    public int updateDmDhTaskState(String code, String user_code) {
+        String updateSql = "update dh_task_3rd_interface set is_finish = '2',user_code = ? where code = ?";
+        return super.mysqlSpringJdbcBaseDao.update(updateSql, user_code, code);
+    }
+}

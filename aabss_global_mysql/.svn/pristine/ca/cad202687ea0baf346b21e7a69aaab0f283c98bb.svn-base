@@ -1,0 +1,145 @@
+package com.newdumai.util;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
+
+public class Base64Utis {
+	public static final String api_id = "ID";
+	public static final String api_secret = "SECRET";
+	public static final String filepath1="C:/Users/face.jpg";//图片
+	//1 路径
+	public static final String filepath2="C:/Users/card.jpg";//图片
+	//2 路径
+	public static final String POST_URL ="https://cloudapi.linkface.cn/identity/selfie_watermark_verification";
+	public static void HttpClientPost() throws
+		ClientProtocolException, IOException {
+		HttpClient httpclient = new DefaultHttpClient();
+		HttpPost post = new HttpPost(POST_URL);
+		StringBody id = new StringBody(api_id);
+		StringBody secret = new StringBody(api_secret);
+		FileBody fileBody1 = new FileBody(new File(filepath1));
+		FileBody fileBody2 = new FileBody(new File(filepath2));
+		MultipartEntity entity = new MultipartEntity();
+		entity.addPart("selfie_file", fileBody1);
+		entity.addPart("watermark_picture_file", fileBody2);
+		entity.addPart("api_id", id);
+		entity.addPart("api_secret", secret);
+		post.setEntity(entity);
+		HttpResponse response = httpclient.execute(post);
+		if (response.getStatusLine().getStatusCode() == 200) {
+		HttpEntity entitys = response.getEntity();
+		BufferedReader reader = new BufferedReader(	new InputStreamReader(entitys.getContent()));
+		String line = reader.readLine();
+		System.out.println(line);
+		}else{
+			HttpEntity r_entity = response.getEntity();
+			String responseString =
+			EntityUtils.toString(r_entity);
+			//System.out.println("错误码是："+response.getStatusLine().getStatusCode()+""+response.getStatusLine().getReasonPhrase());
+			//System.out.println("出错原因是："+responseString);
+			//你需要根据出错的原因判断错误信息，并修改
+		}
+		httpclient.getConnectionManager().shutdown();
+	}
+
+	  //把文件转换成字节数组
+	public static byte[] getBytes(File f) throws Exception {
+			FileInputStream in = new FileInputStream(f);
+			ByteArrayOutputStream out = new ByteArrayOutputStream();
+			byte[] b = new byte[1024];
+			int n;
+			while ((n = in.read(b)) != -1) {
+				out.write(b, 0, n);
+			}
+			in.close();
+			return out.toByteArray();
+		}
+		
+	 public static void main(String[] args) {  
+		 Base64Utis t = new Base64Utis();   
+         //String str = t.GetImageStr("D:/My Documents/scriptxReg.zip");  
+         //String str = t.GetImageStr("D:/My Documents/ip.jpg");  
+         String str = t.GetImageStr("D:/My Documents/哎呀妈呀哎呀妈呀真漂亮.mp3");  
+         System.out.println(str);  
+         //boolean flag = t.GenerateImage(str, "D:/My Documents/scriptxReg.zip");  
+         //boolean flag = t.GenerateImage(str, "D:/My Documents/ip.jpg");  
+         boolean flag = t.GenerateImage(str, "D:/My Documents/哎呀妈呀哎呀妈呀真漂亮B.mp3");  
+         System.out.println(flag);  
+    }  
+    /** 
+     * 将文件转化为字节数组字符串，并对其进行Base64编码处理 
+     * @param imgFile 
+     * @return 
+     */  
+    public static String GetImageStr(String imgFile) {  
+        InputStream in = null;  
+        byte[] data = null;  
+        // 读取文件字节数组  
+        try {  
+            in = new FileInputStream(imgFile);  
+            data = new byte[in.available()];  
+            in.read(data);  
+            in.close();  
+        } catch (IOException e) {  
+            e.printStackTrace();  
+        }  
+        // 对字节数组Base64编码  
+        BASE64Encoder encoder = new BASE64Encoder();  
+        // 返回Base64编码过的字节数组字符串  
+        return encoder.encode(data);  
+    }  
+      
+    /** 
+     * 根据字节数组字符串进行Base64解码并生成文件 
+     * @param imgStr 
+     * @param savedImagePath 
+     * @return 
+     */  
+    public static boolean GenerateImage(String imgStr, String savedImagePath) {  
+        // 文件字节数组字符串数据为空  
+        if (imgStr == null)   
+            return false;  
+        BASE64Decoder decoder = new BASE64Decoder();  
+        try {  
+            // Base64解码  
+            byte[] b = decoder.decodeBuffer(imgStr);  
+            for (int i = 0; i < b.length; ++i) {  
+                {// 调整异常数据  
+                if (b[i] < 0)   
+                    b[i] += 256;  
+                }  
+            }  
+            // 生成文件  
+            // String sangImageStr = "D:/My Documents/ip.jpg" ;  // 要生成文件的路径.  
+            OutputStream out = new FileOutputStream(savedImagePath);  
+            out.write(b);  
+            out.flush();  
+            out.close();  
+            return true;  
+        } catch (Exception e) {  
+            return false;  
+        }  
+    }  
+  
+}

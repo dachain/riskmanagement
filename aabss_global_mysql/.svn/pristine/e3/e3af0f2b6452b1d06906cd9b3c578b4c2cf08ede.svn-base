@@ -1,0 +1,141 @@
+package com.newdumai.loanMiddle.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.google.gson.Gson;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.global.vo.LoginVo;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.loanFront.GenReportService;
+import com.newdumai.loanFront.OrderInfoService;
+import com.newdumai.loanMiddle.LoanMiddleService;
+import com.newdumai.sysmgr.BizFunctionSettingsService;
+import com.newdumai.util.JsonToMap;
+
+@Service("loanMiddleService")
+public class LoadMiddleServiceImpl extends BaseServiceImpl implements LoanMiddleService {
+
+	@Autowired
+	private OrderInfoService orderInfoService;
+
+	@Autowired
+	private AuditService auditService;
+
+	@Autowired
+	private GenReportService genReportService;
+
+	@Autowired
+	private BizFunctionSettingsService bizFunctionSettingsService;
+
+	public String list(Map<String, Object> map) {
+		Map<String, Object> condition = getCondition_list(map);
+		return listPageBase(condition, gen_list_1(condition.get("condition").toString()), gen_list_2(condition.get("condition").toString(), getLimitUseAtSelectPage(map)));
+
+	}
+
+	@Override
+	public List<Map<String, Object>> getTypesBySubEntityId(String subEntityId) {
+		String sql = "select t.* from sys_company_type ct join sys_type t on ct.type_code = t.code where ct.sub_entity_id = ? and ct.rule_model = '1' and ct.is_able = '1'";
+		return super.mysqlSpringJdbcBaseDao.queryForList(sql, subEntityId);
+	}
+
+	@Override
+	public Map<String, Object> getReportInfo(LoginVo login, String code, String typeCode) {
+
+		String sql = "select o.*,c.name typename,p.sex,p.age,p.married,p.address,p.income,p.banknum," 
+				+ " p.otherincome,p.profession,p.linkname1,p.linkname2,p.linkphone1,"
+				+ " p.linkphone2,p.insuranceid,p.insurancepwd,p.fundid,p.fundpwd,co.name as companyName " 
+				+ " from fk_orderInfo o " 
+				+ " left join fk_personinfo p on o.personinfo_code=p.code"
+				+ " left join sys_type c on o.thetype=c.code " 
+				+ " left join company_order co on o.sub_entity_id=co.sub_entity_id " 
+				+ " where o.code=?";
+		Map<String, Object> data = mysqlSpringJdbcBaseDao.queryForMap(sql, code);
+
+		if (null != data) {
+			String xiaoShiPohto = genReportService.Report("1", code);
+			if (StringUtils.isNotEmpty(xiaoShiPohto)) {
+				Map<String, Object> photoData = JsonToMap.jsonToMap(xiaoShiPohto);
+				data.put("xiaoshi-picture", photoData.get("PHOTO"));
+			}
+
+			if (bizFunctionSettingsService.hasFunctions(login, "loanfront_report4", typeCode)) {
+				String bankValidation = genReportService.Report("4", code);
+				if (!StringUtils.isEmpty(bankValidation)) {
+					Map<String, Object> result = JsonToMap.jsonToMap(bankValidation);
+					data.put("bankValidation", result.get("data"));
+				}
+			}
+
+			data.put("audit_result", auditService.findResultsByOrderCode(code));
+			data.put("orders", orderInfoService.findTheSamePersonOrderIdsByCode(code));
+			data.put("basicinfo", new Gson().fromJson(genReportService.Report("6", code), Object.class));
+		}
+
+		return data;
+	}
+	
+	
+	private String gen_list_1(String condition) {
+		return "SELECT count(*) FROM fk_orderinfo WHERE 1=1 " + condition;
+	}
+
+	private String gen_list_2(String condition, String limit) {
+
+		return "SELECT fk_orderinfo.*,sys_type.name type_name,sys_user.surname audit_person,"
+				+ "(select count(*) from fk_guize_detail where fk_guize_detail.order_code=fk_orderinfo.code and result='true') hit_counts FROM fk_orderinfo "
+				+ "left join sys_type on fk_orderinfo.thetype = sys_type.code " + "left join sys_user on fk_orderinfo.dqshr = sys_user.code " + "WHERE 1=1 and fk_orderinfo.deleted=0 "
+				+ " and fk_orderinfo.biz_range = '2' " + condition + " order by fk_orderinfo.createtime desc " + limit;
+	}
+
+	private Map<String, Object> getCondition_list(Map<String, Object> map) {
+		Map<String, Object> data = new HashMap<String, Object>();
+		List<Object> list = new ArrayList<Object>();
+		StringBuilder sb = new StringBuilder();
+
+		String sub_entity_id = (String) map.get("sub_entity_id");
+		if (StringUtils.isNotEmpty(sub_entity_id)) {
+			sb.append(" AND fk_orderinfo.sub_entity_id=? ");
+			list.add(sub_entity_id);
+		}
+
+		String filter_headtype = (String) map.get("filter_headtype");
+		if (!StringUtils.isEmpty(filter_headtype)) {
+			sb.append(" AND fk_orderinfo.thetype=? ");
+			list.add(filter_headtype);
+		}
+
+		String filter_keyword = (String) map.get("filter_keyword");
+		if (!StringUtils.isEmpty(filter_keyword)) {
+			sb.append(" AND (fk_orderinfo.name like ? or fk_orderinfo.card_num like ?)");
+			list.add("%" + filter_keyword + "%");
+			list.add("%" + filter_keyword + "%");
+		}
+
+		String filter_startTime = (String) map.get("filter_startTime");
+		if (!StringUtils.isEmpty(filter_startTime)) {
+			sb.append(" AND fk_orderinfo.createtime > ? ");
+			list.add(filter_startTime);
+		}
+
+		String filter_endTime = (String) map.get("filter_endTime");
+		if (!StringUtils.isEmpty(filter_endTime)) {
+			sb.append(" AND fk_orderinfo.createtime < ? ");
+			list.add(filter_endTime);
+		}
+
+		data.put("condition", sb.toString());
+		data.put("args", list.toArray());
+
+		return data;
+	}
+
+
+}

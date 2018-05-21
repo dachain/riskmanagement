@@ -1,0 +1,90 @@
+package com.newdumai.ht.auditing.task;
+
+import java.util.List;
+import java.util.Map;
+
+import com.newdumai.global.service.BaseService;
+
+/**
+ * 电核任务Service
+ *
+ * @author zgl
+ * @datetime Nov 30, 2016 4:52:07 PM
+ */
+public interface AuditingTaskService extends BaseService {
+
+    /**
+     * 根据用户code查询任务
+     *
+     * @param logincode 登录用户code
+     * @param flag      是否完成
+     * @return
+     * @zgl Dec 1, 2016 2:21:18 PM
+     */
+    public Map<String, Object> getByUserCode(String logincode, String flag);
+
+    /**
+     * 根据用户code先判断是走规则还是模型，然后获取电核任务的电核项信息
+     *
+     * @param logincode
+     * @param flag      1 欺诈评分，2 信用评分
+     * @return
+     * @zgl Dec 1, 2016 3:26:44 PM
+     */
+    public String getConfigByUserCode(String logincode, String flag);
+
+    /**
+     * 根据电核结果，更新评分结果，并重新计算评分
+     *
+     * @param data        电核结果json
+     * @param taskCode    电核任务code
+     * @param description 本单电核详情
+     * @param status 审核状态：0 待审核，1 通过，2 拒绝,3 退回
+     * @return
+     * @zgl Dec 30, 2016 3:19:49 PM
+     */
+    public String updateScoreResult(String data, String taskCode, String description,String status);
+
+    /**
+     * 查询线下电核任务
+     *
+     * @param flag：0 未完成，1 已完成，2 处理中，3 未完成和处理中
+     * @return
+     */
+    List<Map<String, Object>> getDmTask(String flag);
+
+    /**
+     * 保存纯正数据源电核任务
+     *
+     * @param map
+     * @param user_code
+     * @return
+     */
+    int saveDmDhDetail(Map<String, Object> map, String user_code);
+
+    /**
+     * 更新线下电核任务为处理中状态
+     *
+     * @param code
+     * @param user_code
+     * @return
+     */
+    int updateDmDhTaskState(String code, String user_code);
+
+    /**
+     * 根据用户code查询用户下的电核任务
+     *
+     * @param map
+     * @return
+     */
+    String getDhTaskList(Map<String, Object> map);
+
+    /**
+     * 根据电核任务code查询电核项信息
+     *
+     * @param code
+     * @return
+     */
+    Map<String, Object> getDhItemsByCode(String code);
+
+}

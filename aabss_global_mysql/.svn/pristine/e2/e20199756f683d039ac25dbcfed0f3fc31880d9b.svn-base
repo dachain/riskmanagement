@@ -1,0 +1,172 @@
+package com.newdumai.commonDataChannel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+import com.newdumai.global.dao.Dumai_newBaseDao;
+import com.newdumai.global.dao.Dumai_sourceBaseDao;
+
+class CommonDataChannelImpl implements CommonDataChannel{
+
+
+	@Autowired
+	Dumai_sourceBaseDao dumai_sourceBaseDao;
+	
+	@Autowired
+	Dumai_newBaseDao dumai_newBaseDao;
+	
+	@Override
+	public List<Map<String,Object>> queryListBySql(Map<String, Object> params) {
+		List<Map<String,Object>> returnList = new ArrayList<Map<String,Object>>() ;
+		String dao_name = (String) params.get("dao_name");
+		String sql = (String) params.get("sql");
+		if("new".equals(dao_name)){
+			returnList = dumai_newBaseDao.queryForList(sql);
+		}else if("source".equals(dao_name)){
+			returnList = dumai_sourceBaseDao.queryForList(sql);
+		}else{
+			returnList = null ;
+		}
+		return returnList;
+	}
+
+//	/**
+//	 * 执行http(s)请求
+//	 * 不要删
+//	 * String interface_url,String is_https,String has_https_ssl,String sslKeyStore,
+//	 * String sslPassword,String is_post,String contentType,Map<String,Object> params
+//	 * 
+//	 * @param map
+//	 * @throws Exception
+//	 * @throws KeyStoreException
+//	 * @throws CertificateException
+//	 * @throws IOException
+//	 */
+//	@SuppressWarnings("unchecked")
+//	public String request(Map<String,Object> map){
+//		CloseableHttpClient httpClient = null;
+//		try {
+//			HttpResponse resp = null;
+//			URIBuilder builderGet = null;
+//			String url = map.get("url").toString().trim();
+//			URI uri1 = new URI(url);
+//			String protocal = uri1.getScheme();
+//			
+//			if(!"https".equals(protocal)){
+//				httpClient = getHttpClient();
+//			}else {
+//				if("1".equals(map.get("has_https_ssl"))){
+//					httpClient = getSSLHttpClient(map.get("sslKeyStore").toString(), map.get("sslPassword").toString());
+//				}
+//				else{
+//					httpClient = getIgnoreSSLHttpClient();
+//				}
+//			}
+//			if(!"1".equals(map.get("is_post"))){
+//				builderGet = new URIBuilder(map.get("url").toString());
+//				builderGet.setCharset(Charset.forName("UTF-8"));
+//				if(map.get("params")!=null){
+//					Set<String> keySet = ((Map<String, Object>) map.get("params")).keySet();
+//					for(String key : keySet){
+//						Object value = ((Map<String, Object>) map.get("params")).get(key);
+//						builderGet.addParameter(key,value==null?"":value.toString());
+//					}
+//				}
+//				URI uri = null;
+//				uri = builderGet.build();
+//				HttpGet get = new HttpGet(uri);
+//				resp = httpClient.execute(get);
+//			}else{
+//				HttpPost httpost = null;
+//				if(((String) map.get("in_type")).equals("0")){
+//					MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+//					httpost = new HttpPost(map.get("url").toString());
+//					builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+//					Map<String,Object>params = (Map<String, Object>) map.get("params");
+//					for (String key : params.keySet()) {
+//						builder.addPart(key, new StringBody(params.get(key).toString(),ContentType.MULTIPART_FORM_DATA.withCharset("UTF-8")));
+//					}
+//					httpost.setEntity(builder.build());
+//				}
+//				else{
+//					httpost = new HttpPost(map.get("url").toString().trim());
+//					httpost.setHeader("Content-Type", (String) map.get("contentType"));
+//					String json = new Gson().toJson(((Map<String, Object>) map.get("params")));
+//					StringEntity entity = new StringEntity(json,"UTF-8");
+//					httpost.setEntity(entity);			
+//				}
+//				resp= httpClient.execute(httpost);
+//			}
+//			if(resp.getStatusLine().getStatusCode()==200){
+//				String result = EntityUtils.toString(resp.getEntity(),"UTF-8");
+//				//System.out.println(result);
+//				return result;
+//			}
+//			return null;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			return null;
+//		}
+//		finally{
+//			if(httpClient!=null){
+//				try {
+//					httpClient.close();
+//				} catch (IOException e) {
+//					//TODO 加日志时记录为警告信息
+//					System.out.println("WARN! httpClient.close failed...");
+//				}
+//			}
+//		}
+//		
+//	}
+//	
+//	/**
+//	 * 获取忽略证书的https协议的HttpClient
+//	 * @return
+//	 * @throws Exception
+//	 */
+//	@SuppressWarnings("deprecation")
+//	private CloseableHttpClient getIgnoreSSLHttpClient() throws Exception {
+//		KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+//		SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(trustStore, new TrustStrategy() {
+//			@Override
+//			public boolean isTrusted(X509Certificate[] arg0, String arg1) throws CertificateException {
+//				return true;
+//			}
+//		}).build();
+//		
+//		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+//				sslContext, new String[] { "TLSv1" }, null,
+//				SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+//		return HttpClients.custom().setSSLSocketFactory(sslsf).build();
+//	}
+//	/**
+//	 * 获取带证书的https协议的HttpClient
+//	 * @param ketstore
+//	 * @param password
+//	 * @return
+//	 * @throws Exception
+//	 */
+//	private CloseableHttpClient getSSLHttpClient(String ketstore,String password) throws Exception {
+//		SSLContext sslcontext = SSLContexts.custom().loadTrustMaterial(
+//				new File(ketstore),
+//				password.toCharArray(),
+//				(TrustStrategy) new TrustSelfSignedStrategy()
+//				).build();
+//		SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+//				sslcontext, new String[] { "TLSv1" }, null,
+//				SSLConnectionSocketFactory.getDefaultHostnameVerifier());
+//		return HttpClients.custom().setSSLSocketFactory(sslsf).build();
+//	}
+//	
+//	/**
+//	 * 获取http协议的HttpClient
+//	 * @return
+//	 * @throws Exception
+//	 */
+//	private CloseableHttpClient getHttpClient() throws Exception {
+//		return HttpClients.custom().build();
+//	}
+}

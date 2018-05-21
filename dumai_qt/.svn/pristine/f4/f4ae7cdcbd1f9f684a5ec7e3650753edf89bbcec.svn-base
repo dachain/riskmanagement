@@ -1,0 +1,61 @@
+/**
+ *登录页面
+ * Created by Administrator on 2017/4/17 0017.
+ */
+var myLogin = angular.module('myLogin', []);
+myLogin.controller('loginCtrl',['$scope','$http',function ($scope,$http) {
+$http.get("/dumai_qt/verification.do").success(function(data){
+	
+ 	$scope.colResults=data;
+	$scope.num1=$scope.colResults.num1;
+	$scope.num2=$scope.colResults.num2;
+	$scope.arr=$scope.colResults.arr;
+	$scope.result=$scope.colResults.result;
+	$scope.hidden=$scope.result;
+	console.log($scope.hidden)
+	$("#resultJYZSOA").val($scope.result);
+	console.log($("#resultJYZSOA").val())
+}).error(function(error){
+	console.log(error)
+})
+//更换验证码
+    $scope.changeYzm=function () {
+		$http.get("/dumai_qt/verification.do").success(function(data){
+         	$scope.colResults=angular.fromJson(data);
+        	$scope.num1=$scope.colResults.num1;
+        	$scope.num2=$scope.colResults.num2;
+        	$scope.arr=$scope.colResults.arr;
+        	$scope.result=$scope.colResults.result;
+        	$scope.hidden=$scope.result;
+        	$("#resultJYZSOA").val($scope.hidden);
+        }).error(function(){
+        	alert("获取验证码错误")
+        })
+    };
+//点击enter键
+    $(".yam_num").keyup(function(e){
+		 var keycode = window.event?e.keyCode:e.which;
+	        if(keycode==13){
+	        	 login();
+	    }
+	})
+    var flag=false;
+    $(":text").focus( function () {
+        $(this).css({"color":"#fdffff"})
+    });
+    $scope.extra=function () {
+        flag=!flag;
+        if(flag){
+            $(".extra img").css("display","none");
+        }else{
+            $(".extra img").css("display","block");
+        }
+    };
+    $(".circle_pure").mouseenter(function () {
+        $(this).addClass("on");
+    });
+ //关闭错误提示框
+    $scope.close=function(){
+		$(".tip_error").css("display","none");
+	};
+}]);

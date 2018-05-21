@@ -1,0 +1,29 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.tianchuang.in_interface;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.newdumai.setting.interface_source.in_interface.tianchuang.util.AESUtil;
+import com.newdumai.setting.interface_source.in_interface.tianchuang.util.ParamUtil;
+
+public class TianChuangIn_Interface {
+	private static final String appId = "72c97740-6be0-412b-8362-1359dc3a3a57" ;
+	private static final String tokenId = "036c8c16-9f6f-47fa-bd34-0bb051a80ecc";
+	
+	public static Map<String,Object> getIn_para(Map<String, Object> dm_3rd_interfaceMap, Map<String, Object> in_para) {
+		
+		Map<String,String> params = new HashMap<String,String>();
+		//车辆核查接口，license字段不需要AES加密的
+		/*String plate = (String) in_para.get("plate");
+		String plateType =(String) in_para.get("plateType");
+		params.put("plate", AESUtil.encode(appId.replace("-", ""),plate));
+		*/
+		params.put("license",(String) in_para.get("license"));
+		params.put("licenseType", (String) in_para.get("licenseType"));
+		String url = (String) dm_3rd_interfaceMap.get("url");
+		String tokenKey = ParamUtil.getTokenKey(url, tokenId, params);
+		params.put("tokenKey", tokenKey);
+		params.put("appId", appId);
+		return new HashMap<String, Object>(params);
+	}
+}

@@ -1,0 +1,65 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.gps.in_interface;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.google.gson.GsonBuilder;
+import com.newdumai.util.HttpClientUtil;
+import com.newdumai.util.JsonToMap;
+
+public class GpsIn_Interface {
+	
+	private static final String ACCESS_TOKEN_URL = "http://datainterface5.neiweiguan.cn/api/sysUser/Access_token";
+	private static final String USER_NAME = "IQB";
+	private static final String PASSWORD = "123456";
+	
+	/**
+	 * 
+	 * @param dm_3rd_interfaceMap
+	 * @param in_para
+	 * @return
+	 */
+	public static Map<String, Object> getIn_para(Map<String, Object> dm_3rd_interfaceMap, Map<String, Object> in_para) {
+		
+		Map<String, Object> inParams = new HashMap<String, Object>();
+		Map<String, Object> jsondata = new HashMap<String, Object>();
+		String access_token = getAccessToken();
+		jsondata.putAll(in_para);
+		jsondata.put("access_token", access_token);
+		inParams.put("jsondata", new GsonBuilder().serializeNulls().create().toJson(jsondata));
+		return inParams;
+		
+	}
+	
+	/**
+	 * 获取登录令牌
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	private static String getAccessToken() {
+		Map<String, Object> inParams = new HashMap<String, Object>();
+		Map<String, Object> jsondata = new HashMap<String, Object>();
+		jsondata.put("UserName", USER_NAME);
+		jsondata.put("Password", PASSWORD);
+		inParams.put("jsondata", new GsonBuilder().serializeNulls().create().toJson(jsondata));
+		String rs = HttpClientUtil.exec(ACCESS_TOKEN_URL, "1", "0", inParams);
+		if (rs == null) {
+			return null;
+		}
+		
+		try {
+			System.out.println(rs);
+			Map<String, Object> rsMap = JsonToMap.gson2Map(rs);
+			int resultCode = ((Number) rsMap.get("ResultCode")).intValue();
+			if (resultCode == 0) {
+				Map<String, Object> resultMap = (Map<String, Object>) rsMap.get("Result");
+				if (resultMap != null) {
+					return (String) resultMap.get("access_token");
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+}

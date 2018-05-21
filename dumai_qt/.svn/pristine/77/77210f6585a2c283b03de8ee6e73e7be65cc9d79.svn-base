@@ -1,0 +1,123 @@
+/**
+ * Created by Administrator on 2017/4/17 0017.
+ */
+var myLogin = angular.module('myLogin', []);
+myLogin.controller('loginCtrl',['$scope','$http',function ($scope,$http) {
+$http.get("/dumai_qt/verification.do").success(function(data){
+	console.log(data)
+ 	$scope.colResults=data;
+	$scope.num1=$scope.colResults.num1;
+	$scope.num2=$scope.colResults.num2;
+	$scope.arr=$scope.colResults.arr;
+	$scope.result=$scope.colResults.result;
+	$scope.hidden=$scope.result;
+}).error(function(error){
+	console.log(error)
+})
+
+    $scope.changeYzm=function () {
+		$http.get("/dumai_qt/verification.do").success(function(data){
+         	$scope.colResults=angular.fromJson(data);
+        	$scope.num1=$scope.colResults.num1;
+        	$scope.num2=$scope.colResults.num2;
+        	$scope.arr=$scope.colResults.arr;
+        	$scope.result=$scope.colResults.result;
+        	$scope.hidden=$scope.result;
+        }).error(function(){
+        	alert("111")
+        })
+    };
+
+
+    $scope.login=function () {
+        if(!$scope.user_name ||!$scope.user_password){
+            $(".tip_error3").css("z-index","120");
+           
+        }
+        $scope.userInfo={
+            name:$scope.user_name,
+            password:$scope.user_password
+        };
+
+        $(".circle").css({"transform":"rotate(360deg)","transition": "all 3s cubic-bezier(.11,.81,.92,.21) 0s "});
+        $http({
+            method:'POST',
+            url:"/dumai_qt/login.do",
+            data:{
+            	name:$scope.user_name ,
+            	pass:$scope.user_password,
+            	inputNum:$scope.value,
+            	resultJYZSOA:$scope.hidden
+            },
+            headers:{'Content-Type': 'application/x-www-form-urlencoded'},
+            transformRequest: function(obj) {
+                var str = [];
+                for(var p in obj){
+                    str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+                }
+                return str.join("&");
+            }
+        }).success(function (data) {
+        	if(data == 0){
+        		 window.location.href="/dumai_qt/toPortal.do";	
+        	}else if(data == 1){
+        		$scope.tipName="验证码错误";
+        		$scope.changeYzm();
+        		 $(".tip_error").css("z-index","120");
+        	}else if(data == 2){
+        		$scope.tipName="用户名或密码错误";
+        		$scope.changeYzm();
+       		 $(".tip_error").css("z-index","120");
+       	}else if(data == 3){
+    		$scope.tipName="非法用户";
+    		$scope.changeYzm();
+      		 $(".tip_error").css("z-index","120");
+      	}else if(data == 4){
+    		$scope.tipName="非法IP地址登录!";
+    		$scope.changeYzm();
+      		 $(".tip_error").css("z-index","120");
+      	}else if(data == 5){
+    		$scope.tipName="贵公司账户可能被禁用，请联系管理员!";
+    		$scope.changeYzm();
+      		 $(".tip_error").css("z-index","120");
+      	}else if(data == 6){
+    		$scope.tipName="系统异常!";
+    		$scope.changeYzm();
+      		 $(".tip_error").css("z-index","120");
+      	}else if(data == 7){
+    		$scope.tipName="用户名或密码为空!";
+    		$scope.changeYzm();
+     		 $(".tip_error").css("z-index","120");
+     	}
+        $(".close").click(function () {
+             $(".tip_error").css("z-index","-1")
+       })
+        }).error(function(error){
+        	console.log(error)	
+        });
+    };
+    $scope.myKeyup = function(e){
+        //IE 编码包含在window.event.keyCode中，Firefox或Safari 包含在event.which中
+        var keycode = window.event?e.keyCode:e.which;
+      
+        if(keycode==13){
+            $scope.login();
+        }
+    };
+    var flag=false;
+    $(":text").focus( function () {
+        $(this).css("color","#fdffff")
+    });
+    $scope.extra=function () {
+        flag=!flag;
+        if(flag){
+            $(".extra img").css("display","none");
+        }else{
+            $(".extra img").css("display","block");
+        }
+    };
+    $(".circle_pure").mouseenter(function () {
+        $(this).addClass("on");
+    });
+
+}]);

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="mylitigation">
+<head>
+    <meta charset="UTF-8">
+    <title>详情</title>
+     <link rel="stylesheet" href="../css/bootstrap.css">
+     <link rel="stylesheet" href="../css/ng-grid.css">
+     <link rel="stylesheet" href="../css/loading-bar.css">
+	<style>
+    	.gridStyle{
+    		margin:20px auto;
+        	width: 700px;
+        	height: 500px;
+        	border:1px solid green;
+    	}
+    	.ngRow{
+    		border-top:1px solid #d4d4d4;
+    	}
+    	.ngHeaderScroller{
+   		 	text-align:center;
+    	}
+     	.ngRow.odd{
+            background: #cde8ff;
+    	}
+   		.ngTotalSelectContainer{
+    		display:none;
+    	}
+     	.form-control{
+   			margin-top:20px!important;
+	 	}
+		.form-horizontal .control-label{
+  			 margin-top:20px!important;
+	 	}
+    
+	.loading {
+	position:absolute;
+ 	top:50%;
+ 	left:50%;
+ 	margin-left:-100px;
+ 	margin-top:-4rem;
+    display: inline-block;
+    overflow: hidden;
+    height: 30px;
+    line-height: 30px;
+    vertical-align: text-bottom;
+    font-size:30px;
+}
+
+.loading::after {
+    display: inline-table;
+    white-space: pre;
+    text-align: left;
+}
+.loading.rhomb::after {
+   content: "◇◇◇◇◇\A◈◇◇◇◇\A◇◈◇◇◇\A◇◇◈◇◇\A◇◇◇◈◇\A◇◇◇◇◈\A◇◇◇◇◇";
+  animation: spin6 2s steps(6) infinite;
+ }
+ @keyframes spin6  { to { transform: translateY( -180px); } }
+}
+    </style>
+</head>
+<body >
+<div id="loading-bar-container"></div>
+	<form action="" class="form-horizontal" role="form">
+    	<div class="form-group" style="width:98%"></div>
+	</form>
+<div ng-controller="myCtrl">
+    <div class="gridStyle" ng-grid="gridOptions"></div>
+</div>	
+ <script src="../script/lib/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+ <script src="../script/lib/angular.js" type="text/javascript" ></script>
+ <script src="../script/lib/angular-animate.js" type="text/javascript" charset="utf-8"></script>
+ <script src="../script/lib/loading-bar.js" type="text/javascript" charset="utf-8"></script>
+ <script src="../script/lib/ng-grid.js" type="text/javascript" charset="utf-8"></script>
+ <script  type="text/javascript">
+
+	var myLitigation = angular.module('mylitigation', ['ngGrid','chieffancypants.loadingBar']);
+	myLitigation.config(['cfpLoadingBarProvider', function(cfpLoadingBarProvider) {
+	    cfpLoadingBarProvider.includeSpinner = true;
+	    cfpLoadingBarProvider.spinnerTemplate = '<span class="loading rhomb"></span>';
+	}]);
+	var params=window.location.search;
+	myLitigation.controller("myCtrl",["$scope","$http","cfpLoadingBar",function($scope,$http,cfpLoadingBar){
+		//[{ "name_zh":"认证结果", "value":"查询成功_有数据"},
+        //{"name_zh":"初次登记期", "value":"2010/9/20"},
+        //{"name_zh":"车辆类型", "value":"小型普通客车"}]
+		 $scope.start = function() {
+          cfpLoadingBar.start();
+      };
+
+      $scope.complete = function () {
+          cfpLoadingBar.complete();
+      };
+      cfpLoadingBar.start();
+		$http.post("/dumai_qt/report/dataDetail.do"+params).success(function(data){
+			$scope.users=angular.fromJson(data.body);
+		});
+		 $scope.pagingOptions={
+		            pageSizes:[2,4,6],
+		            pageSize:2,
+		            currentPage:1
+		        };
+		  $scope.gridOptions={
+			        data:'users',
+			        columnDefs:[
+			            {
+			                field:'name_zh',
+			                displayName:'类别',
+			            },
+			            {
+			                field:'value',
+			                displayName:'结果'
+			            }
+			        ],
+			        showFilter:true,
+			        enablePaging:true,
+			        showFooter:true,
+			        pagingOptions:$scope.pagingOptions //显示分页的信息
+			    
+			    };
+		  
+	}]);
+ </script>
+</body>
+</html>

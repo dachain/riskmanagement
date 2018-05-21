@@ -1,0 +1,18 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.dumai.out_interface;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import com.google.gson.Gson;
+import com.newdumai.util.IdCardUtils;
+
+public class Order {
+	public static String getAge(Map<String, Object> dm_3rd_interfaceMap,Map<String,Object> inPara){
+		String card_num = (String) inPara.get("card_num");
+		Map<String,Object> result = new HashMap<String, Object>();
+		int age =  IdCardUtils.getAgeByIdCard(card_num);
+		result.put("age", age);
+		result.put("sex", IdCardUtils.getSex(card_num));
+		return new Gson().toJson(result);
+	}
+}

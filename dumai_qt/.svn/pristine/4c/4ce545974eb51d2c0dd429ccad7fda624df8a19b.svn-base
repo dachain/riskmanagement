@@ -1,0 +1,78 @@
+<%@page contentType="text/html; charset=utf-8" language="java"%>
+<%@ taglib prefix="common" tagdir="/WEB-INF/tags/common" %>
+<%@ include file="/WEB-INF/views/common/taglibs.jsp" %>
+<!DOCTYPE html>
+<html ng-app="warnApp">
+	<head>
+	<title>GPS报警</title>
+	<link rel="stylesheet" href="${ctx}/static/css/gps/gps.css">
+	</head>
+	<script src="http://api.map.baidu.com/api?v=2.0&ak=zmAWIlHnn8qQ4qMKkBGtypeoZio5q86s" type="text/javascript"></script>
+	<body>
+ <div class="messbox" ng-controller="warnCtrl">
+        <div class="warntitle">
+            <h4> <span style="display:inline-block;margin-right:20px;">总共{{all}}</span ></span><span>未解除{{all}}</span></h4>
+            <div class="warntitleRight">
+                <input type="checkbox" checked>
+                <span>开启报警声音</span>
+            </div>
+        </div>
+        <div class="warnContent">
+        <div class="title"><span>报警时间</span><span>报警类型</span><span style="width: 50%">报警位置</span></div>
+                <ul class="selectLi">
+                    <li ng-repeat="allCarInfo in allCarInfos"  ng-click="selectLi()"><span>{{allCarInfo.Time}}</span><span>{{allCarInfo.AlarmTypeId}}</span><span style="width: 50%">{{allCarInfo.Location}}</span><i style="display: none">{{allCarInfo}}</i></li>
+                </ul>
+            <div class="right">
+                <div class="rightBottom">
+                    <div id="posMap" style="width:100%;height: 100%;border: 1px solid" ></div>
+                </div>
+            </div>
+        </div>
+        <span class="messbtn" ng-click="messboxClose()"></span>
+    </div>
+    <script src="${ctx}/static/script/lib/jquery.min.js"></script>
+<script src="${ctx}/static/script/lib/angular.js"></script>
+    <script type="text/javascript">
+    var warnApp = angular.module('warnApp', []);
+    warnApp.controller("warnCtrl",function($scope,$http){
+        $http.get("${ctx}/loanMiddle/gps_alarm.do").success(function (data) {
+            $scope.allCarInfos=data;
+            console.log($scope.allCarInfos)
+            $scope.all= $scope.allCarInfos.length+"条";
+        	var map = new BMap.Map("posMap");
+        	var point = new BMap.Point($scope.allCarInfos[0].Lng, $scope.allCarInfos[0].Lat);
+            map.centerAndZoom(point, 11);
+            var myIcon = new BMap.Icon("${ctx}/img/car.png", new BMap.Size(70, 32), {
+                imageOffset: new BMap.Size(0, 0)
+            });
+            var marker = new BMap.Marker(point,{icon:myIcon});
+         	map.addOverlay(marker);   
+            map.addControl(new BMap.MapTypeControl());
+            map.enableScrollWheelZoom(true);
+            $scope.selectLi=function (e) {
+                e=e||window.event;
+                if(e.target.tagName.toUpperCase() == "LI"){
+                    $(e.target).css({'background':"#65bf53","color":"#fff"}).siblings().css({'background':"none","color":"black"});
+                    $scope.aryDetail=angular.fromJson($(e.target).children("i").html());
+                }else if(e.target.tagName.toUpperCase() == "SPAN"){
+                    var target=$(e.target).parent();
+                    $(target).css({'background':"#65bf53","color":"#fff"}).siblings().css({'background':"none","color":"black"})
+                    $scope.aryDetail= angular.fromJson($(target).children("i").html());
+                };
+                point = new BMap.Point($scope.aryDetail.Lng, $scope.aryDetail.Lat);
+                map.centerAndZoom(point, 11);
+               // marker = new BMap.Marker(point,{icon:myIcon});
+             	//map.addOverlay(marker);   
+                //map.addControl(new BMap.MapTypeControl());
+                //map.enableScrollWheelZoom(true);
+            };
+        });
+        $scope.messboxClose=function(){
+        	$(".messbox").css("display","none");
+        };
+    });
+
+	
+	</script>
+	</body>
+</html>

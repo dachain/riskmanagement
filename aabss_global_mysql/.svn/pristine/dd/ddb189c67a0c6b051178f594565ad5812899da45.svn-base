@@ -1,0 +1,56 @@
+package com.newdumai.loanMiddle.impl;
+
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.loanMiddle.GpsService;
+import com.newdumai.util.DictUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.*;
+
+/**
+ * Created by zhang on 2017/4/10.
+ */
+@Service("gpsService")
+public class GpsServiceImpl extends BaseServiceImpl implements GpsService {
+    @Override
+    public Map<String, Object> getAlarmInfo(String deviceNumber, String alarmTypeId, Date dateTime) {
+        String sql = "select * from gps_alarm where device_number = ? and alarm_type = ? and alarm_time = ?";
+        return super.mysqlSpringJdbcBaseDao.queryForMap(sql, deviceNumber, alarmTypeId, dateTime);
+    }
+
+    @Override
+    public void saveAlarm(Map<String, Object> map) {
+        add(map, "gps_alarm");
+    }
+
+    @Override
+    public Map<String, Object> getOrderInfo(String deviceNumber) {
+        String sql = "select * from fk_orderinfo where DeviceNumber = ? or DeviceNumber_wireless = ? ";
+        return super.mysqlSpringJdbcBaseDao.queryForMap(sql, deviceNumber, deviceNumber);
+    }
+
+    @Override
+    public List<Map<String, Object>> getGpsAlarm(String orderCode) {
+        String sql = "select * from gps_alarm where fk_orderinfo_code = ?";
+        List<Map<String, Object>> list = super.mysqlSpringJdbcBaseDao.queryForList(sql, orderCode);
+        List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+        for (Map<String, Object> map : list) {
+            Map<String, Object> newMap = new HashMap<String, Object>();
+            String alarmType = (String) map.get("alarm_type");
+            newMap.put("AlarmTypeId", alarmType);
+            newMap.put("AlarmType", DictUtils.getDictLabel(alarmType, "gps_alarm", ""));
+            newMap.put("Time", map.get("alarm_time"));
+            newMap.put("Lng", map.get("longitude"));
+            newMap.put("Lat", map.get("latitude"));
+            newMap.put("Location", map.get("alarm_location"));
+            resultList.add(newMap);
+        }
+        return resultList;
+    }
+
+    @Override
+    public void updateOrderAlarm(String orderCode) {
+        String sql = "update fk_orderinfo set is_alarm = '1' where code = ?";
+        super.mysqlSpringJdbcBaseDao.update(sql, orderCode);
+    }
+}

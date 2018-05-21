@@ -1,0 +1,84 @@
+<%@ page language="java" import="java.util.*" pageEncoding="utf-8"%>
+<%@ include file="/WEB-INF/views/common/taglibs.jsp" %>
+
+<!DOCTYPE HTML>
+<html lang="en" ng-app="myLogin">
+<head>
+<meta charset="UTF-8">
+<title>风控管理系统</title>
+<meta name="viewport"
+	content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,initial-scale=1.0" />
+<meta content="yes" name="apple-mobile-web-app-capable" />
+<meta content="black" name="apple-mobile-web-app-status-bar-style" />
+<meta content="telephone=no" name="format-detection" />
+<link rel="stylesheet" href="${ctx}/static/css/load.css">
+<link rel="stylesheet" href="${ctx}/static/css/bootstrap.css">
+<script src="${ctx}/static/script/lib/jquery.min.js"></script>
+<script src="${ctx}/static/script/lib/angular.js"></script>
+<script src="${ctx}/static/script/lib/jquery-ui.js"></script>
+<script src="${ctx}/static/script/canvas/canvas.js"></script>
+<script src="${ctx}/static/script/controller/loginController.js"></script>
+<script language="Javascript">
+		function login(){
+		    var user= document.loginForm.name.value;
+			var pass= document.loginForm.pass.value;
+			if(user==null || user.length==0)
+			{
+				alert("请输入用户名");
+				document.loginForm.name.focus();
+				return false;
+			}
+			if(pass==null || pass.length==0)
+			{
+				alert("请输入密码");
+				document.loginForm.pass.focus();
+				return false;
+			}
+			
+			var inputNum= document.loginForm.inputNum.value;
+			if(inputNum==null || inputNum.length==0)
+			{
+				alert("请输入验证码");
+				document.loginForm.inputNum.focus();
+				return false;
+			}
+			document.loginForm.submit();
+		}
+</script>
+</head>
+<body>
+<div class="allContent"  ng-controller="loginCtrl">
+    <canvas id="stars"></canvas>
+    <div class="contain">
+        <div class="logo" id="logo"></div>
+	    <form class="form-post" name="loginForm" action="/dumai_qt/login.do" method=post>
+        <div class="circle_pure">
+        
+            <ul>
+                <li class="user_load"><i class="icon_user"></i><input type="text" class="user" placeholder="用户名" name="name" ng-model="user_name"></li>
+                <li class="password_load" ><i class="icon_password"></i><input type="password" class="password" name="pass" placeholder="请输入密码" ng-model="user_password"></li>
+                <li style="margin-top: 20px" class="yzm">
+                    <div>
+                    	<span ng-bind="num1"></span><span ng-bind="arr"></span><span ng-bind="num2"></span>=
+                    </div>
+                    <input type="number" placeholder="整数" ng-model="value" name="inputNum" class="yam_num" ng-keyup="myKeyup($event)">
+                    <a href="javascript:;" ng-click="changeYzm()">换一张</a>
+                </li>
+                <li style="margin-top: 20px;padding-left: 0px">
+                	<input type="button"  value="登录" onclick="javascrpt:login();"  class="sub" >
+                </li>
+                <li class="extra" style="margin-top: 10px" ng-click="extra()">
+                    <a href="javascript:;">忘记密码</a>
+                </li>
+            </ul>
+        </div>
+        <input type="hidden" name="resultJYZSOA"  ng-model="hidden" id="resultJYZSOA"/>
+        </form>
+        <div class="circle" id="circle"></div>
+        <div class="tip_error">{{tipName}}<br>请重新输入！<i class="close"></i></div>
+       <!--  <div class="tip_error2">您输入的验证码有误，<br>请重新输入！<i class="close"></i></div>
+        <div class="tip_error3" style=" padding-top: 40px;">请输入您的账号或密码！<i class="close"></i></div> -->
+    </div>
+</div>
+</body>
+</html>

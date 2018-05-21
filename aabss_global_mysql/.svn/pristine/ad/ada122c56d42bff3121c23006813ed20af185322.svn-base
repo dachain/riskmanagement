@@ -1,0 +1,22 @@
+package com.newdumai.commonDataChannel.db.impl;
+
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.newdumai.commonDataChannel.db.DSService;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+
+
+@Service("dsService")
+public class DSServiceImpl extends BaseServiceImpl implements DSService {
+
+	@Override
+	public Map<String, Object> findDS(String code) {
+		return super.mysqlSpringJdbcBaseDao.executeSelectSql2(gen_findDS(code)).get(0);
+	}
+
+	private String gen_findDS(String code) {
+		return "SELECT * FROM sys_interface_source where code='"+code+"'";
+	}
+}

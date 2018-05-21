@@ -1,0 +1,47 @@
+package com.newdumai.loanFront;
+
+import java.util.List;
+import java.util.Map;
+
+public interface AuditService {
+	public List<Map<String, Object>> findResultsByOrderCode(String orderId);
+	
+	public String auditOne(String orderId);
+	
+	public float getAuditOneCost(String orderId);
+	
+	public float getInterfacesCostInOrder(String orderId,String interfacesCodes);
+	
+	public Map<String, Object> getInPara(String orderId,String interfacesCodes);
+	
+	public String auditOne2(String orderId);
+
+	public Map<String, Object> createLabel(Map<String, Object> orderMap);
+
+	public String auditOne_rule2(Map<String, Object> orderMap ,Map<String, Object> bigLabelMap);
+
+	public String auditOne3(Map<String, Object> orderMap ,Map<String, Object> bigLabelMap);
+
+	public String auditOne4(Map<String, Object> orderMap);
+
+	public String auditOne5(Map<String, Object> orderMap);
+	
+	public void Audit_DH(String task_code);
+
+	public void CreateDh_task(Map<String, Object> orderMap);
+
+	public void CreateDh_task_3rd_interface(Map<String, Object> orderMap);
+
+	public boolean checkCompanyDHFunction(String sub_entity_id);
+
+	public void sendAuditResult(String orderId, String auditResult, boolean flag);
+
+	public void updateOrderAuditResult(String orderId, String result, boolean flag);
+
+	public Map<String, Object> auditOne_jianquan(Map<String, Object> orderMap);
+
+
+
+	
+
+}

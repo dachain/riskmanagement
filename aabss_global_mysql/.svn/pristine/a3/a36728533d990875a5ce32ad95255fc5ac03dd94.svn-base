@@ -1,0 +1,69 @@
+package com.newdumai.dumai_data.dm_3rd_interface.util;
+
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.lang.StringUtils;
+
+import com.google.gson.Gson;
+import com.newdumai.global.dao.Dumai_newBaseDao;
+import com.newdumai.global.dao.Dumai_sourceBaseDao;
+import com.newdumai.util.SpringApplicationContextHolder;
+
+public class CostUtil {
+	/**
+	 * 判断费用是否够用
+	 * 
+	 * @return
+	 */
+	public static boolean isBalanceEnough(String sub_entity_id, String... dm_3rd_interface_codes) {
+		Dumai_sourceBaseDao dumai_sourceBaseDao = SpringApplicationContextHolder.getBean(Dumai_sourceBaseDao.class);
+		Dumai_newBaseDao dumai_newBaseDao = SpringApplicationContextHolder.getBean(Dumai_newBaseDao.class);
+		String codes = "('" + StringUtils.join(dm_3rd_interface_codes, "','") + "')";
+		Map<String, Object> companyMap = dumai_newBaseDao.queryForMap("SELECT * FROM company_order WHERE sub_entity_id=?", sub_entity_id);
+		Map<String, Object> costMap = dumai_sourceBaseDao.queryForMap("SELECT sum(cost_out)*? total_cost FROM dm_3rd_interface WHERE code in" + codes,companyMap.get("cost_rate"));
+		// 查询花费
+		Float cost = ((Number) costMap.get("total_cost")).floatValue();
+		Integer status = (Integer) companyMap.get("status");
+		if (status == 0) {
+			return false;
+		}
+		//Float todayBalance = (Float) companyMap.get("todayBalance");
+		Float totalBalance = (Float) companyMap.get("totalBalance");
+		if (totalBalance - cost < 100) {
+			return false;
+		} 
+		return true;
+	}
+	
+	/**
+	 * 扣费	
+	 * @param sub_entity_id 商户标识
+	 * @param fk_orderinfo_code 订单code
+	 * @param logDescription 扣费日志描述
+	 * @param dm_3rd_interface_codes 第三方数据源codes
+	 * @return 0失败 1成功
+	 */
+	public static int charge(Map<String, Object> orderMap, String logDescription, String... dm_3rd_interface_codes) {
+		try {
+			Dumai_sourceBaseDao dumai_sourceBaseDao = SpringApplicationContextHolder.getBean(Dumai_sourceBaseDao.class);
+			Dumai_newBaseDao dumai_newBaseDao = SpringApplicationContextHolder.getBean(Dumai_newBaseDao.class);
+			String sub_entity_id = (String) orderMap.get("sub_entity_id");
+			String fk_orderinfo_code = (String) orderMap.get("code");
+			String codes = "('" + StringUtils.join(dm_3rd_interface_codes, "','") + "')";
+			Map<String, Object> companyMap = dumai_newBaseDao.queryForMap("SELECT * FROM company_order WHERE sub_entity_id=?", sub_entity_id);
+			Map<String, Object> costMap = dumai_sourceBaseDao.queryForMap("SELECT sum(cost*?) total_cost FROM dm_3rd_interface WHERE code in" + codes,companyMap.get("cost_rate"));
+			// 查询花费
+			Float cost = ((Number) costMap.get("total_cost")).floatValue();
+			dumai_newBaseDao.update("update company_order set todayBalance=todayBalance-?,totalBalance=totalBalance-? where sub_entity_id=?", cost, cost, sub_entity_id);
+			String uuid = UUID.randomUUID().toString();
+			String orderJSON = new Gson().toJson(orderMap);
+			dumai_newBaseDao.insert("insert into company_order_log(code,sub_entity_id,fk_orderinfo_code,dm_3rd_interface_code,orderinfo,cost,description) values(?,?,?,?,?,?,?)", uuid, sub_entity_id,
+					fk_orderinfo_code, codes, orderJSON, cost, logDescription);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return 0;
+		}
+		return 1;
+	}
+}

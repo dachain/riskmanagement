@@ -1,0 +1,47 @@
+package com.newdumai.ht.manager.rule.rule.impl;
+
+import com.google.gson.Gson;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.ht.manager.rule.rule.CustomModelService;
+import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Created by zhang on 2017/4/26.
+ */
+@Service("customModelService")
+public class CustomModelServiceImpl extends BaseServiceImpl implements CustomModelService {
+
+    @Override
+    public String getModels(Map<String, Object> map) {
+        String type_code = (String) map.get("type_code");
+        String sub_entity_id = (String) map.get("sub_entity_id");
+
+        //业务类型对应的模型
+        String modelSql = "SELECT a.`code`,a.`name`,a.model_type,a.is_able,a.description,a.opttime,c.`name` AS modelGroupName FROM manager_model AS a " +
+                " INNER JOIN manager_model__manager_model_group AS b ON b.manager_model_code = a.`code` " +
+                " INNER JOIN manager_model_group AS c ON c.`code` = b.manager_model_group_code  WHERE " +
+                " c.sys_type_code = ? and c.biz_range = '1' AND c.is_able = '1' AND a.is_able = '1' ";
+
+        //商户关联业务类型对应的模型code
+        String models = "SELECT b.manager_model_code FROM sys_company_type AS a " +
+                "INNER JOIN sys_company_type__manager_model AS b ON a.`code` = b.sys_company_type_code WHERE a.sub_entity_id = ? AND a.type_code = ? ";
+
+        List<Map<String, Object>> modelsList = super.mysqlSpringJdbcBaseDao.queryForList(models, sub_entity_id, type_code);
+        List<Map<String, Object>> managerModelList = super.mysqlSpringJdbcBaseDao.queryForList(modelSql, type_code);
+        for (Map<String, Object> modelMap : managerModelList) {
+            modelMap.put("status", "0");
+            String code = (String) modelMap.get("code");
+            for (Map<String, Object> modelCodeMap : modelsList) {
+                if (code.equals(modelCodeMap.get("manager_model_code"))) {
+                    modelMap.put("status", "1");
+                    break;
+                }
+            }
+        }
+        return new Gson().toJson(managerModelList);
+    }
+}

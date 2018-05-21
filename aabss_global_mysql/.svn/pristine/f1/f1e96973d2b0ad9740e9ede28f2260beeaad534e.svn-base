@@ -1,0 +1,33 @@
+package com.newdumai.commonDataChannel;
+
+public class DataSourceFactory {
+
+	/**
+	 * 数据源统一转发： 
+	 * 应对切换数据源的情况发生
+	 */
+	public static String getDataSourceType(String dataSourceCode){
+//		switch(dataSourceCode){
+//		case "001" : return "PingAn";
+//		case "002" : return "XiaoShi";
+//		case "003" : return "UFen";
+//		default : return "";
+//		}
+		if("001".equals(dataSourceCode)){
+			return "PingAn";
+		}else if("002".equals(dataSourceCode)){
+			return "XiaoShi";
+		}else if("003".equals(dataSourceCode)){
+			return "UFen";
+		}else{
+			return "";
+		}
+	}
+	
+    public static CommonDataChannel createCommonDataChannel() {
+        return new CommonDataChannelImpl();
+    }
+	
+	
+	
+}

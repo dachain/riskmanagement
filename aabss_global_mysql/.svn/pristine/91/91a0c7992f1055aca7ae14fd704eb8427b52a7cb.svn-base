@@ -1,0 +1,17 @@
+package com.newdumai.jinjian.impl;
+
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.jinjian.ValidateOrderService;
+@Service
+public class ValidateOrderServiceImpl  extends BaseServiceImpl implements ValidateOrderService{
+
+	@Override
+	public String getList(Map<String, Object> request2Map) {
+		return  super.list("failed_validate_order", request2Map);
+	}
+ 
+}

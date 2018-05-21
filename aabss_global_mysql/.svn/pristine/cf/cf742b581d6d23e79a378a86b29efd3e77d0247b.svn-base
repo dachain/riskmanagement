@@ -1,0 +1,76 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.huifa.out_interface;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import com.google.gson.GsonBuilder;
+import com.newdumai.util.JsonToMap;
+
+public class HuiFaOut_Interface {
+	
+	@SuppressWarnings("unchecked")
+	public static String getLitigationOut_para(Map<String, Object> dm_3rd_interfaceMap, String result) {
+		try {
+			Integer hf_illegal = null;
+			Integer hf_overdue = null;
+			String hf_caseType = null;
+			Integer hf_overdueTime = 0;
+			Integer hf_dishonesty = null;
+			Map<String, Object> map = JsonToMap.jsonToMap(result);
+			
+			List<Map<String, Object>> allmsglist = (List<Map<String, Object>>) map.get("allmsglist");
+			if (allmsglist != null) {
+				hf_illegal = 0;
+				hf_overdue = 0;
+				//hf_caseType = "行政处罚、劳务纠纷（结案）";
+				hf_dishonesty = 0;
+				int index = 0;
+				for (Map<String, Object> msg : allmsglist) {
+					int typet = ((Number) msg.get("typet")).intValue();
+					if (32 == typet || 149 == typet || 31 == typet) {
+						hf_illegal ++;
+					}
+					if (31 != typet && 134 != typet && 68 != typet) {
+						hf_caseType = "其他类型";
+					}
+					else{
+						hf_caseType = "行政处罚、劳务纠纷（结案）";
+					}
+					
+					if (147 == typet) {
+						hf_overdue ++;
+						if(index==0){
+							List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) msg.get("onemsglist");
+							for(Map<String, Object> onemsg : onemsglist){
+								if("拖欠起始日期".equals(onemsg.get("propername"))){
+									String propervalue = (String) onemsg.get("propervalue");
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+									Date dateOverdue = sdf.parse(propervalue);
+									Date date = new Date();
+									hf_overdueTime = (int) ((date.getTime()-dateOverdue.getTime())/1000L*60*60*24*30);
+									break;
+								}
+							}
+						}
+					}
+					
+					if (38 == typet || 46 == typet || 148 == typet || 149 == typet) {
+						hf_dishonesty++;
+					}
+					index ++;
+				}
+			}
+			map.put("hf_illegal", hf_illegal+"");
+			map.put("hf_caseType", hf_caseType+"");
+			map.put("hf_overdue", hf_overdue+"");
+			map.put("hf_overdueTime", hf_overdueTime+"");
+			map.put("hf_dishonesty", hf_dishonesty+"");
+			return new GsonBuilder().serializeNulls().create().toJson(map);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+}

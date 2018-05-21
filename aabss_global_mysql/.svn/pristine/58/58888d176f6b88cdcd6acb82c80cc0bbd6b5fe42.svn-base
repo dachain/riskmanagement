@@ -1,0 +1,45 @@
+package com.newdumai.commonDataChannel;
+
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Test;
+
+public class TestDataSource {
+	
+	/**
+	 * 用法案例
+	 */
+	@Test
+	public void doTest(){
+		/*Map<String,Object> params = new HashMap<String,Object>();
+		
+		String name = "井庆生";
+		String idCard = "370102197508262532";
+		String mobileNumber = "13581722270";
+		String bankNumber = "4367420011110470869";
+		params.put("name", name);
+		params.put("idCard", idCard);
+		params.put("mobileNumber", mobileNumber);
+		params.put("bankNumber", bankNumber);
+		
+		//优分用法---------------------------------------------------------------------------
+		String url = "https://api.acedata.com.cn:2443/oreo/personal/basic";
+		String serviceName = "GetIDCardImage";
+		params.put("url", url);
+		params.put("serviceName", serviceName);
+		params.put("dataSourceType", DataSourceFactory.getDataSourceType("003"));
+		params = DataSourceFactory.createCommonDataChannel().doQuery(params);
+		
+		//凭安用法------------------------------------------------------------------------------------
+		url = "https://i.trustutn.org/b/loanClassify";
+		params.put("url", url);
+		params.put("dataSourceType", DataSourceFactory.getDataSourceType("001"));
+		params = DataSourceFactory.createCommonDataChannel().doQuery(params);
+		
+		//小视----------------------------------------------------------------------------------
+		url = "https://120.27.194.34:8314/CreditFunc";
+		params.put("dataSourceType", DataSourceFactory.getDataSourceType("002"));
+		params = DataSourceFactory.createCommonDataChannel().doQuery(params);*/
+	}
+	
+}

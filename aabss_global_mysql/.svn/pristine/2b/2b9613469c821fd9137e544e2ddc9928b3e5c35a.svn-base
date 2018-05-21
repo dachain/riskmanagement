@@ -1,0 +1,18 @@
+package com.newdumai.jinjian.impl;
+
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.google.gson.GsonBuilder;
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.jinjian.ValidateOrderService;
+@Service
+public class ValidateOrderServiceImpl  extends BaseServiceImpl implements ValidateOrderService{
+
+	@Override
+	public String getList(Map<String, Object> request2Map) {
+		return  new GsonBuilder().serializeNulls().create().toJson(super.mysqlSpringJdbcBaseDao.queryForList("select * from failed_validate_order order by opttime desc limit 0,200"));
+	}
+ 
+}

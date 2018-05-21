@@ -1,0 +1,28 @@
+package test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.newdumai.dumai_data.dm_3rd_interface.special_interface.tianchuang.TianChuang;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.util.DaoHelper;
+import com.newdumai.util.Dumai_newConfig;
+import com.newdumai.util.Dumai_sourceConfig;
+import com.newdumai.util.SpringApplicationContextHolder;
+
+/**
+ * 田新洋测试专用
+ * @author MH-PC 请不要修改此测试类
+ */
+public class Test3 {}

@@ -1,0 +1,19 @@
+package com.newdumai.ht.manager.rule.rule;
+
+import com.newdumai.global.service.BaseService;
+
+import java.util.Map;
+
+/**
+ * Created by zhang on 2017/4/26.
+ */
+public interface CustomModelService extends BaseService {
+
+    /**
+     * 获取商户业务类型对应的模型
+     *
+     * @param map
+     * @return
+     */
+    String getModels(Map<String, Object> map);
+}

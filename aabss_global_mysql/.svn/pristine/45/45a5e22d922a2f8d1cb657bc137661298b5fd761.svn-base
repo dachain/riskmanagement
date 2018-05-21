@@ -1,0 +1,30 @@
+package com.newdumai.sysmgr;
+
+import java.util.List;
+import java.util.Map;
+
+import com.newdumai.global.vo.Page;
+import com.newdumai.global.vo.PageConfig;
+
+public interface UserService {
+	public Page<Map<String,Object>> findAsPage(PageConfig config,String sub_entity_id);
+
+	public boolean del(String parameter);
+
+	boolean addUser(Map<String, Object> user);
+
+	public boolean updateUser(Map<String, Object> user);
+
+	public boolean updatePwd(String code, String pwd);
+	
+	public boolean existsUsername(String uesername);
+
+
+	/**
+	 * 根据类型查询所有用户(且不包含电核管理员)
+	 *
+	 * @param type
+	 * @return
+	 */
+	List<Map<String, Object>> getAllUserByType(String type);
+}

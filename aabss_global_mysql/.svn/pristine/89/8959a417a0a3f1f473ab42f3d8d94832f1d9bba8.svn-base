@@ -1,0 +1,90 @@
+package com.newdumai.util;
+
+import com.newdumai.global.dao.Dumai_sourceBaseDao;
+import org.apache.commons.lang.StringUtils;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
+public class Dm_3rd_InterfaceUtils {
+
+	@SuppressWarnings("unchecked")
+	public static Object getOutParaValue(Map<String, Object> result, Map<String, Object> dm_3rd_interface_paraMap) {
+		String para_group = (String) dm_3rd_interface_paraMap.get("para_group");
+		String name = (String) dm_3rd_interface_paraMap.get("name");
+		Map<String, Object> data = new HashMap<String, Object>();
+		if (StringUtils.isNotEmpty(para_group)) {
+			String para_path[] = para_group.split("_");// 多层的支持
+			Map<String, Object> curJsonData = result;
+			for (String key : para_path) {
+				curJsonData = (Map<String, Object>) curJsonData.get(key);
+				if (curJsonData == null) {
+					return null;
+				}
+			}
+			data = curJsonData;
+		} else {
+			data = result;
+		}
+		return data.get(name);
+	}
+
+	public static Object getOutParaValue(String result, Map<String, Object> dm_3rd_interface_paraMap) {
+		return getOutParaValue(JsonToMap.jsonToMap(result), dm_3rd_interface_paraMap);
+	}
+
+	public static Map<String, Object> trans_dm_label_inPara(String in_para, Map<String, Object> orderMap, Dumai_sourceBaseDao dumai_sourceBaseDao) {
+		Map<String, Object> returnMap = new TreeMap<String, Object>(new Comparator<String>() {
+			public int compare(String obj1, String obj2) {
+				return obj2.compareTo(obj1);
+			}
+		});
+		String sql;
+		String dm_3rd_interface_para_name;
+		String orderMap_name;
+		try {
+			Map<String, Object> inParaMap = JsonToMap.gson2Map(in_para);
+			Set<String> keySet = inParaMap.keySet();
+			for (String dm_3rd_interface_para_code : keySet) {
+				dm_3rd_interface_para_name = "";
+				orderMap_name = "";
+				sql = " select * from dm_3rd_interface_para where code = '" + dm_3rd_interface_para_code + "' ";
+				dm_3rd_interface_para_name = (String) dumai_sourceBaseDao.queryForMap(sql).get("name");
+				orderMap_name = (String) inParaMap.get(dm_3rd_interface_para_code);
+				if (orderMap.containsKey(orderMap_name)) {
+					returnMap.put(dm_3rd_interface_para_name.trim(), orderMap.get(orderMap_name));
+				}
+			}
+		} catch (Exception e) {
+			returnMap = null;
+		}
+		return returnMap;
+	}
+
+    public static Map<String, Object> transInParaToColumn(String in_para, Map<String, Object> orderMap, Dumai_sourceBaseDao dumai_sourceBaseDao) {
+        Map<String, Object> returnMap = new HashMap<String, Object>();
+        String sql;
+        String dm_3rd_interface_para_name;
+        String detail_name;
+        try {
+            Map<String, Object> inParaMap = JsonToMap.gson2Map(in_para);
+            Set<String> keySet = inParaMap.keySet();
+            for (String dm_3rd_interface_para_code : keySet) {
+                dm_3rd_interface_para_name = "";
+                detail_name = "";
+                sql = " select * from dm_3rd_interface_para where code = '" + dm_3rd_interface_para_code + "' ";
+                dm_3rd_interface_para_name = (String) dumai_sourceBaseDao.queryForMap(sql).get("name");
+                detail_name = (String) inParaMap.get(dm_3rd_interface_para_code);
+                if (orderMap.containsKey(dm_3rd_interface_para_name)) {
+                    returnMap.put(detail_name, orderMap.get(dm_3rd_interface_para_name));
+                }
+            }
+        } catch (Exception e) {
+            returnMap = null;
+        }
+        return returnMap;
+    }
+}

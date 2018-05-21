@@ -1,0 +1,80 @@
+package com.newdumai.jinjian.impl;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.newdumai.global.service.impl.BaseServiceImpl;
+import com.newdumai.jinjian.InputOrderService;
+
+@Service("inputOrderService")
+public class InputOrderServiceImpl extends BaseServiceImpl implements InputOrderService {
+	
+	@Override
+	public void addCase(Map<String, Object> person, Map<String, Object> order) {
+		String code = addAndRet(person, "fk_personinfo");
+		order.put("personinfo_code", code);
+		add(order, "fk_orderinfo");
+	}
+
+	@Override
+	public void updateCaseStep(Map<String, Object> personParams,
+			Map<String, Object> personWhere, Map<String, Object> orderParams,
+			Map<String, Object> orderWhere) {
+		if(personParams != null){
+			Update(personParams, "fk_personinfo_step", personWhere);
+		}
+		if(orderParams != null){
+			Update(orderParams, "fk_orderinfo_step", orderWhere);
+		}
+	}
+
+	@Override
+	public void addCaseStep(Map<String, Object> person, Map<String, Object> order) {
+		String code = addAndRet(person, "fk_personinfo_step");
+		order.put("personinfo_code", code);
+		add(order, "fk_orderinfo_step");
+	}
+
+	@Override
+	public Map<String, Object> getPersonStepByCode(String code) {
+		return mysqlSpringJdbcBaseDao.queryForMap("SELECT * FROM fk_personinfo_step WHERE code = ?", new Object[]{code});
+	}
+
+	@Override
+	public Map<String, Object> getOrderStepByCode(String code) {
+		return mysqlSpringJdbcBaseDao.queryForMap("SELECT * FROM fk_orderinfo_step WHERE code = ?", new Object[]{code});
+	}
+
+	@Override
+	public List<Map<String,Object>> getTypesOfAccount(String account) {
+		String sql = "select t.* from sys_company_type ct join sys_type t on ct.type_code = t.code JOIN company_order ON company_order.sub_entity_id = ct.sub_entity_id where ct.rule_model = '1' and ct.is_able = '1' and company_order.account = ? ";
+		return super.mysqlSpringJdbcBaseDao.queryForList(sql, account);
+	}
+
+	@Override
+	public List<Map<String, Object>> getTypesBySubEntityId(String sub_entity_id) {
+		String sql = "select t.* from sys_company_type ct join sys_type t on ct.type_code = t.code  where ct.rule_model = '1' and ct.is_able = '1' and ct.sub_entity_id = ? ";
+		
+		return super.mysqlSpringJdbcBaseDao.queryForList(sql, sub_entity_id);
+	}
+
+	@Override
+	public boolean isTestCompanyUsedUp(String account) {
+		// select is_test from company_order where sub_entity_id=?
+		//select count(*) from fk_orderinfo where sub_entity_id=?;
+		Map<String,Object> company = mysqlSpringJdbcBaseDao.queryForMap("select * from company_order where account=?",account);
+		if(company!=null){
+			String isTest = (String) company.get("is_test");
+			if("1".equals(isTest)){
+				Map<String,Object> data = mysqlSpringJdbcBaseDao.queryForMap("select count(*) cnt from fk_orderinfo where sub_entity_id=?", company.get("sub_entity_id"));
+				Long count = (Long)data.get("cnt");
+				return count>=5;
+			}
+			else return false;
+		}
+		return true;
+	}
+
+}

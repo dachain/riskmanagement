@@ -1,0 +1,85 @@
+package test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.newdumai.global.dao.Dumai_newBaseDao;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.util.Dumai_newConfig;
+import com.newdumai.util.Dumai_sourceConfig;
+import com.newdumai.util.SpringApplicationContextHolder;
+
+/**
+ * @author zfc
+ */
+public class Test3_jianquan {
+
+	private Logger log = Logger.getLogger(this.getClass());
+	private static ConfigurableListableBeanFactory beanFactory;
+	private Object ctx ;
+
+	@Test
+	public void doTest() {
+		List<String>list=new ArrayList<String>();
+		list.add("8443b5b5-8c27-419a-8d73-d0f3ee60dcfb");
+		String result = null;
+		try {
+			for (String orderId : list) {
+				Map<String,Object>orderMap = ((Dumai_newBaseDao)beanFactory.getBean("mysqlSpringJdbcBaseDao")).queryForMap("select * from fk_orderinfo where code = ? ", new Object[]{orderId});
+				result = ((AuditService)beanFactory.getBean("auditService")).auditOne_jianquan(orderMap);
+//				result = ((AuditService)beanFactory.getBean("auditService")).auditOne5(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task_3rd_interface(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).sendAuditResult(orderId, "true" ,true);
+//				((AuditService)beanFactory.getBean("auditService")).Audit_DH("ec01abf3-e610-44fa-803a-283d03de7427");
+			}
+			//Map<String,Object>bigLabelMap = ((AuditService)beanFactory.getBean("auditService")).createLabel(orderMap);
+			//result = ((AuditService)beanFactory.getBean("auditService")).auditOne3(orderMap, bigLabelMap);
+		} catch (Exception e) {
+			result = e.getCause() + e.getMessage();
+		}
+		log.info("*****************\t");
+		log.info("**   "+result+"   **\t");
+		log.info("*****************\t");
+	}
+
+	@Before
+	public void initCtx() {
+		try {
+			ctx = new ClassPathXmlApplicationContext("classpath:test/application.xml");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		if (ctx == null) {
+			try {
+				ctx = new AnnotationConfigApplicationContext(Dumai_newConfig.class, Dumai_sourceConfig.class,SpringApplicationContextHolder.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			beanFactory = ((ClassPathXmlApplicationContext) ctx).getBeanFactory();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			beanFactory = ((AnnotationConfigApplicationContext) ctx).getBeanFactory();
+		}
+	}
+	@After
+	public void destroy() throws ClassNotFoundException{
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			((ClassPathXmlApplicationContext) ctx).close();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			((AnnotationConfigApplicationContext) ctx).close();
+		}
+	}
+}

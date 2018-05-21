@@ -1,0 +1,106 @@
+package test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.newdumai.global.dao.Dumai_newBaseDao;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.util.Dumai_newConfig;
+import com.newdumai.util.Dumai_sourceConfig;
+import com.newdumai.util.SpringApplicationContextHolder;
+
+/**
+ * @author MH-PC test for tian
+ */
+public class Test3forTian {
+
+	private Logger log = Logger.getLogger(this.getClass());
+	private static ConfigurableListableBeanFactory beanFactory;
+	private Object ctx ;
+	
+	
+	//3	21ff186a-77c6-45ec-a78c-956b2a31e092	勾鹏	滴滴车分期	1		读脉
+	
+	
+	@Test
+	public void doTest() {
+//		String orderId = "8b6f437a-f9c5-4e26-8e4c-f71fed273448";
+		//-String orderId = "f7359006-8513-4a4e-8d67-24a4c1bfd887";
+		//String orderId = "c45c8436-38bd-41d0-b2fb-4b2d8273fb75";
+		List<String>list=new ArrayList<String>();
+//		list.add("e02028f9-47ee-4c3e-9f99-24a9c4c9195b");
+//		list.add("d1470c73-b2ec-47af-8c6c-4709c7e9fa4e");
+//		list.add("8443b5b5-8c27-419a-8d73-d0f3ee60dcfb");
+//		list.add("3440229e-9374-4258-a299-3c6e709cad04");
+//		list.add("1b97e2e1-5324-4693-91e6-7112566dfd75");
+//		list.add("f7359006-8513-4a4e-8d67-24a4c1bfd887");
+//		list.add("657dc4af-2070-44d4-89fb-d34eb6e36f7e");
+		list.add("8443b5b5-8c27-419a-8d73-d0f3ee60dcfb");
+		String result = null;
+		try {
+			for (String orderId : list) {
+				Map<String,Object>orderMap = ((Dumai_newBaseDao)beanFactory.getBean("mysqlSpringJdbcBaseDao")).queryForMap("select * from fk_orderinfo where code = ? ", new Object[]{orderId});
+//				result = ((AuditService)beanFactory.getBean("auditService")).auditOne4(orderMap);
+//				result = ((AuditService)beanFactory.getBean("auditService")).auditOne5(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task_3rd_interface(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task(orderMap);
+				((AuditService)beanFactory.getBean("auditService")).sendAuditResult(orderId, "true" ,true);
+//				((AuditService)beanFactory.getBean("auditService")).Audit_DH("ec01abf3-e610-44fa-803a-283d03de7427");
+			}
+			//Map<String,Object>bigLabelMap = ((AuditService)beanFactory.getBean("auditService")).createLabel(orderMap);
+			//result = ((AuditService)beanFactory.getBean("auditService")).auditOne3(orderMap, bigLabelMap);
+		} catch (Exception e) {
+			result = e.getCause() + e.getMessage();
+		}
+		log.info("*****************\t");
+		log.info("**   "+result+"   **\t");
+		log.info("*****************\t");
+	}
+
+	@Before
+	public void initCtx() {
+		try {
+			ctx = new ClassPathXmlApplicationContext("classpath:test/application.xml");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		if (ctx == null) {
+			try {
+				ctx = new AnnotationConfigApplicationContext(Dumai_newConfig.class, Dumai_sourceConfig.class,SpringApplicationContextHolder.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			beanFactory = ((ClassPathXmlApplicationContext) ctx).getBeanFactory();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			beanFactory = ((AnnotationConfigApplicationContext) ctx).getBeanFactory();
+		}
+	}
+	@After
+	public void destroy() throws ClassNotFoundException{
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			((ClassPathXmlApplicationContext) ctx).close();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			((AnnotationConfigApplicationContext) ctx).close();
+		}
+	}
+	
+	@Test
+	public void doTest2(){
+		
+	
+	}
+	
+}

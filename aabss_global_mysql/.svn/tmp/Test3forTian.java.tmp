@@ -1,0 +1,106 @@
+package test;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import com.newdumai.global.dao.Dumai_newBaseDao;
+import com.newdumai.loanFront.AuditService;
+import com.newdumai.util.Dumai_newConfig;
+import com.newdumai.util.Dumai_sourceConfig;
+import com.newdumai.util.SpringApplicationContextHolder;
+
+/**
+ * @author MH-PC test for tian
+ */
+public class Test3forTian {
+
+	private Logger log = Logger.getLogger(this.getClass());
+	private static ConfigurableListableBeanFactory beanFactory;
+	private Object ctx ;
+	
+	//3	21ff186a-77c6-45ec-a78c-956b2a31e092	勾鹏	滴滴车分期	1		读脉
+	@Test
+	public void doTest() {
+//		String orderId = "8b6f437a-f9c5-4e26-8e4c-f71fed273448";
+		//-String orderId = "f7359006-8513-4a4e-8d67-24a4c1bfd887";
+		//String orderId = "c45c8436-38bd-41d0-b2fb-4b2d8273fb75";
+		List<String>list=new ArrayList<String>();
+		
+//		list.add("8443b5b5-8c27-419a-8d73-d0f3ee60dcfb");//jianquan
+		list.add("0c37950d-ce1b-4fca-a6c9-a2e8b2cb1671");//send
+//		list.add("62cfc70c-cbdd-45d2-bdd8-550a11d9cc29");
+//		list.add("7c354d3b-40e7-477d-9b50-c505bac5589d");
+		String result = null;
+		try {
+			for (String orderId : list) {
+				Map<String,Object>orderMap = ((Dumai_newBaseDao)beanFactory.getBean("mysqlSpringJdbcBaseDao")).queryForMap("select * from fk_orderinfo where code = ? ", new Object[]{orderId});
+//				result = ((AuditService)beanFactory.getBean("auditService")).auditOne4(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).auditOne_jianquan(orderMap);
+//				result = ((AuditService)beanFactory.getBean("auditService")).auditOne5(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task_3rd_interface(orderMap);
+//				((AuditService)beanFactory.getBean("auditService")).CreateDh_task(orderMap);
+				((AuditService)beanFactory.getBean("auditService")).sendAuditResult(orderId, "false" ,false);
+//				((AuditService)beanFactory.getBean("auditService")).Audit_DH("761dc7c9-13e9-461a-a4bf-881d73be4971");
+//				((AuditAsynchronousThread)beanFactory.getBean("auditAsynchronousThread")).doAuditByOrderId(orderId);
+<<<<<<< .mine
+				Map<String,Object>bigLabelMap = ((AuditService)beanFactory.getBean("auditService")).createLabel(orderMap);
+				result = ((AuditService)beanFactory.getBean("auditService")).auditOne3(orderMap);
+=======
+//				result = String.valueOf(((AuditService)beanFactory.getBean("auditService")).auditOne3(orderMap));
+>>>>>>> .r1913
+			}
+		} catch (Exception e) {
+			result = e.getCause() + e.getMessage();
+			e.printStackTrace();
+		}
+		log.info("*****************\t");
+		log.info("**   "+result+"   **\t");
+		log.info("*****************\t");
+	}
+
+	@Before
+	public void initCtx() {
+		try {
+			ctx = new ClassPathXmlApplicationContext("classpath:test/application.xml");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		if (ctx == null) {
+			try {
+				ctx = new AnnotationConfigApplicationContext(Dumai_newConfig.class, Dumai_sourceConfig.class,SpringApplicationContextHolder.class);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} 
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			beanFactory = ((ClassPathXmlApplicationContext) ctx).getBeanFactory();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			beanFactory = ((AnnotationConfigApplicationContext) ctx).getBeanFactory();
+		}
+	}
+	@After
+	public void destroy() throws ClassNotFoundException{
+		if( ctx instanceof ClassPathXmlApplicationContext){
+			((ClassPathXmlApplicationContext) ctx).close();
+		}
+		if(ctx instanceof AnnotationConfigApplicationContext){
+			((AnnotationConfigApplicationContext) ctx).close();
+		}
+	}
+	
+	public static void main(String[] args){
+		Test3forTian test= new Test3forTian();
+		test.initCtx();
+		test.doTest();
+	}
+}

@@ -1,0 +1,259 @@
+package com.newdumai.dumai_data.dm_3rd_interface.special_interface.huifa.out_interface;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+
+import com.google.gson.GsonBuilder;
+import com.newdumai.util.JsonToMap;
+import com.newdumai.util.TimeHelper;
+
+public class HuiFaOut_Interface {
+	
+	@SuppressWarnings("unchecked")
+	public static String getLitigationOut_para(Map<String, Object> dm_3rd_interfaceMap, String result) {
+		try {
+			Integer hf_illegal = null;
+			Integer hf_overdue = null;
+			String hf_caseType = null;
+			Integer hf_overdueTime = 0;
+			Integer hf_dishonesty = null;
+			String typets = "";
+			Map<String, Object> map = JsonToMap.jsonToMap(result);
+			
+			List<Map<String, Object>> allmsglist = (List<Map<String, Object>>) map.get("allmsglist");
+			if (allmsglist != null) {
+				hf_illegal = 0;
+				hf_overdue = 0;
+				//hf_caseType = "行政处罚、劳务纠纷（结案）";
+				hf_dishonesty = 0;
+				int index = 0;
+				List<Integer> typetList = new ArrayList<Integer>();
+				for (Map<String, Object> allmsg : allmsglist) {
+					int typet = ((Number) allmsg.get("typet")).intValue();
+					String type = (String) allmsg.get("type");//中文描述
+					typetList.add(typet);
+					if (32 == typet || 149 == typet || 31 == typet) {
+						hf_illegal ++;
+					}
+					if (31 != typet && 134 != typet && 68 != typet) {
+						hf_caseType = "其他类型";
+					}
+					else{
+						hf_caseType = "行政处罚、劳务纠纷（结案）";
+					}
+					
+					if (147 == typet) {
+						hf_overdue ++;
+						if(index==0){
+							List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+							for(Map<String, Object> onemsg : onemsglist){
+								if("拖欠起始日期".equals(onemsg.get("propername"))){
+									String propervalue = (String) onemsg.get("propervalue");
+									SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+									Date dateOverdue = sdf.parse(propervalue);
+									Date date = new Date();
+									hf_overdueTime = (int) ((date.getTime()-dateOverdue.getTime())/1000L*60*60*24*30);
+									break;
+								}
+							}
+						}
+					}
+					
+					if (38 == typet || 46 == typet || 148 == typet || 149 == typet) {
+						hf_dishonesty++;
+					}
+					index ++;
+					//新的接口逻辑
+					if("罪犯及嫌疑人名单".equals(type)&&31 == typet ){
+						List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+						if(CollectionUtils.isNotEmpty(onemsglist)){
+							String crime_31_datetime = "";
+							for(Map<String, Object> onemsg : onemsglist){
+								if("处理时间".equals(onemsg.get("propername"))){
+									crime_31_datetime = getYearsToToday((String) onemsg.get("propervalue"));
+								}
+							}
+							Map<String,Object> saveMap = new HashMap<String,Object>();
+							saveMap.put("crime_31_datetime", crime_31_datetime);
+							if(map.containsKey("crime_31_datetime")){
+								if (crime_31_datetime.compareTo((String)map.get("crime_31_datetime"))<0) {
+									map.putAll(saveMap);
+								}
+							}else{
+								map.putAll(saveMap);
+							}
+						}
+					}
+					
+					if("民商事裁判文书".equals(type)&&31 == typet ){
+						List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+						if(CollectionUtils.isNotEmpty(onemsglist)){
+							String judge_31_money = "";
+							String judge_31_diwei = "";
+							String judge_31_datetime = "";
+							for(Map<String, Object> onemsg : onemsglist){
+								if("涉案金额".equals(onemsg.get("propername"))){
+									judge_31_money = (String) onemsg.get("propervalue");
+								}
+								if("诉讼地位".equals(onemsg.get("propername"))){
+									judge_31_diwei = (String) onemsg.get("propervalue");
+								}
+								if("结案时间".equals(onemsg.get("propername"))){
+									judge_31_datetime = getYearsToToday((String) onemsg.get("propervalue"));
+								}
+							}
+							if("被告".equals(judge_31_diwei)){
+								Map<String,Object> saveMap = new HashMap<String,Object>();
+								saveMap.put("judge_31_money", judge_31_money);
+								saveMap.put("judge_31_diwei", judge_31_diwei);
+								saveMap.put("judge_31_datetime", judge_31_datetime);
+								if(map.containsKey("judge_31_money")){
+									if (judge_31_money.compareTo((String)map.get("judge_31_money"))<0) {
+										map.putAll(saveMap);
+									}
+								}else{
+									map.putAll(saveMap);
+								}
+							}
+						}
+					}
+
+					if("执行公开信息".equals(type)&&164 == typet ){
+						List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+						if(CollectionUtils.isNotEmpty(onemsglist)){
+							String perform_public_info_164_status = "";
+							String perform_public_info_164_datetime = "";
+							for(Map<String, Object> onemsg : onemsglist){
+								if("执行状态".equals(onemsg.get("propername"))){
+									perform_public_info_164_status = (String) onemsg.get("propervalue");
+								}
+								if("立案时间".equals(onemsg.get("propername"))){
+									perform_public_info_164_datetime = getYearsToToday((String) onemsg.get("propervalue"));
+								}
+							}
+							if("已结案".equals(perform_public_info_164_status)){
+								Map<String,Object> saveMap = new HashMap<String,Object>();
+								saveMap.put("perform_public_info_164_yijiean_status", perform_public_info_164_status);
+								saveMap.put("perform_public_info_164_yijiean_datetime", perform_public_info_164_datetime);
+								if(map.containsKey("perform_public_info_164_yijiean_datetime")){
+									if (perform_public_info_164_datetime.compareTo((String)map.get("perform_public_info_164_yijiean_datetime"))<0) {
+										map.putAll(saveMap);
+									}
+								}else{
+									map.putAll(saveMap);
+								}
+							}else{
+								Map<String,Object> saveMap = new HashMap<String,Object>();
+								saveMap.put("perform_public_info_164_weijiean_status", perform_public_info_164_status);
+								saveMap.put("perform_public_info_164_weijiean_datetime", perform_public_info_164_datetime);
+								if(map.containsKey("perform_public_info_164_weijiean_datetime")){
+									if (perform_public_info_164_datetime.compareTo((String)map.get("perform_public_info_164_weijiean_datetime"))<0) {
+										map.putAll(saveMap);
+									}
+								}else{
+									map.putAll(saveMap);
+								}
+							}
+						}
+					}
+					
+					if("民商事审判流程".equals(type)&&151 == typet ){
+						List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+						if(CollectionUtils.isNotEmpty(onemsglist)){
+							String judge_process_151_diwei = "";
+							String judge_process_151_datetime = "";
+							for(Map<String, Object> onemsg : onemsglist){
+								if("诉讼地位".equals(onemsg.get("propername"))){
+									judge_process_151_diwei = (String) onemsg.get("propervalue");
+								}
+								if("具体日期".equals(onemsg.get("propername"))){
+									judge_process_151_datetime = getYearsToToday((String) onemsg.get("propervalue"));
+								}
+							}
+							if("被告".equals(judge_process_151_diwei)){
+								Map<String,Object> saveMap = new HashMap<String,Object>();
+								saveMap.put("judge_process_151_diwei", judge_process_151_diwei);
+								saveMap.put("judge_process_151_datetime", judge_process_151_datetime);
+								if(map.containsKey("judge_process_151_datetime")){
+									if (judge_process_151_datetime.compareTo((String)map.get("judge_process_151_datetime"))<0) {
+										map.putAll(saveMap);
+									}
+								}else{
+									map.putAll(saveMap);
+								}
+							}
+						}
+					}
+					
+					if("行政违法记录".equals(type)&&134 == typet ){
+						List<Map<String, Object>> onemsglist = (List<Map<String, Object>>) allmsg.get("onemsglist");
+						if(CollectionUtils.isNotEmpty(onemsglist)){
+							String illegal_record_134_enforcement_result = "";
+							String illegal_record_134_court_result = "";
+							String illegal_record_134_datetime = "";
+							for(Map<String, Object> onemsg : onemsglist){
+								if("行政执法结果".equals(onemsg.get("propername"))){
+									illegal_record_134_enforcement_result = (String) onemsg.get("propervalue");
+								}
+								if("法院审理结果".equals(onemsg.get("propername"))){
+									illegal_record_134_court_result = (String) onemsg.get("propervalue");
+								}
+								if("具体日期".equals(onemsg.get("propername"))){
+									illegal_record_134_datetime = getYearsToToday((String) onemsg.get("propervalue"));
+								}
+							}
+							Map<String,Object> saveMap = new HashMap<String,Object>();
+							saveMap.put("illegal_record_134_enforcement_result", illegal_record_134_enforcement_result);
+							saveMap.put("illegal_record_134_court_result", illegal_record_134_court_result);
+							saveMap.put("illegal_record_134_datetime", illegal_record_134_datetime);
+							if(map.containsKey("illegal_record_134_datetime")){
+								if (illegal_record_134_datetime.compareTo((String)map.get("illegal_record_134_datetime"))<0) {
+									map.putAll(saveMap);
+								}
+							}else{
+								map.putAll(saveMap);
+							}
+						}
+					}
+					
+					
+				}
+				typets = StringUtils.join(typetList,",");
+			}
+			map.put("typets", typets);
+			map.put("hf_illegal", hf_illegal+"");
+			map.put("hf_caseType", hf_caseType+"");
+			map.put("hf_overdue", hf_overdue+"");
+			map.put("hf_overdueTime", hf_overdueTime+"");
+			map.put("hf_dishonesty", hf_dishonesty+"");
+			return new GsonBuilder().serializeNulls().create().toJson(map);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	//获取时间到今天之间的年数
+	private static String getYearsToToday(String dateStr){
+		Float years = 0f;
+		SimpleDateFormat sdf=new SimpleDateFormat("yyyy-MM-dd");
+		Date date = null;
+		Date today = new Date();
+		try {
+			date = sdf.parse(dateStr);
+			years = TimeHelper.getDistanceOfTwoDate(date, today);	
+		} catch (Exception e) {
+			
+		}  
+		return String.valueOf(years);
+	}
+	
+}

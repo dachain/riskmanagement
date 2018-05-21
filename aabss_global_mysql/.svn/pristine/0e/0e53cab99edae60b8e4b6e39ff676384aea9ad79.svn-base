@@ -1,0 +1,9 @@
+//package com.newdumai.commonDataChannel.db;
+//
+//import java.util.Map;
+//
+//import com.newdumai.global.service.BaseService;
+//
+//public interface DSService extends BaseService {
+//	public Map<String, Object> findDS(String code);
+//}
